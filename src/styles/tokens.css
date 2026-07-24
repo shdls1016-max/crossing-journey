@@ -1,0 +1,38 @@
+:root {
+  color-scheme: light;
+
+  --color-primary: #1fbfc4;
+  --color-primary-shadow: #078f9c;
+  --color-secondary: #4aa7e8;
+  --color-accent: #ff7a5c;
+  --color-success: #58d58a;
+  --color-danger: #ef5b5b;
+  --color-surface: #fff7ea;
+  --color-surface-cool: #eaf7fb;
+  --color-text: #23435d;
+  --color-text-soft: #557083;
+  --color-locked: #6f7d8a;
+  --color-disabled: #aab4bc;
+  --color-backdrop: rgba(18, 32, 62, 0.48);
+  --color-action-top: #8fe35a;
+  --color-action-bottom: #58c73d;
+  --color-character-top: #ffd86a;
+  --color-character-bottom: #f5b941;
+  --color-character-text: #6a4a18;
+  --color-utility-top: #f8f3e8;
+  --color-utility-bottom: #e8ddc8;
+  --color-utility-border: #d8c8aa;
+  --color-utility-icon: #6b6558;
+
+  --font-display: "Trebuchet MS", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --radius-pill: 999px;
+  --radius-panel: clamp(24px, 6vw, 44px);
+  --shadow-ui: 0 10px 24px rgba(21, 72, 94, 0.22);
+  --press-offset: 5px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --motion-fast: 140ms;
+  --motion-normal: 240ms;
+}

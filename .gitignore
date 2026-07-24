@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.codex-runtime/
+.wrangler/
+.env
+.env.*
+!.env.example
+.codex-*
+*.log
+.DS_Store
+Thumbs.db

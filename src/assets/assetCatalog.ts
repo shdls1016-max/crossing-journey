@@ -1,0 +1,95 @@
+export interface ImageAsset {
+  readonly key: string;
+  readonly path: string;
+}
+
+export const ASSET_KEYS = {
+  character: {
+    reference: "character-main-reference",
+    play: "character-main-play",
+    map: "character-main-map",
+    clear: "character-main-clear",
+    fail: "character-main-fail",
+  },
+  terrain: {
+    grass: "terrain-safe-grass",
+    road: "terrain-road",
+    forest: "terrain-forest",
+    river: "terrain-river",
+    city: "terrain-city",
+    railway: "terrain-railway",
+    snow: "terrain-snow-overlay",
+  },
+  vehicle: {
+    compact: "vehicle-car-compact",
+    sedan: "vehicle-car-sedan",
+    truck: "vehicle-truck",
+    train: "vehicle-train",
+  },
+  obstacle: {
+    logSmall: "obstacle-log-small",
+    logLong: "obstacle-log-long",
+  },
+  object: {
+    coin: "object-coin",
+    finishSign: "object-finish-sign",
+  },
+  node: {
+    normal: "world-node-normal",
+    current: "world-node-current",
+    completed: "world-node-completed",
+    locked: "world-node-locked",
+  },
+  ui: {
+    settings: "ui-icon-settings",
+    characterMenu: "ui-icon-character-menu",
+    back: "ui-icon-back",
+    pause: "ui-icon-pause",
+    close: "ui-icon-close",
+    lock: "ui-icon-lock",
+    check: "ui-icon-check",
+    star: "ui-icon-star",
+    buttonLarge: "ui-button-large",
+    buttonSmall: "ui-button-small",
+    popup: "ui-popup-panel",
+  },
+} as const;
+
+export const IMAGE_ASSETS: readonly ImageAsset[] = [
+  { key: ASSET_KEYS.character.reference, path: assetUrl(PUBLIC_ASSET_FILES.character.reference) },
+  { key: ASSET_KEYS.character.play, path: assetUrl(PUBLIC_ASSET_FILES.character.play) },
+  { key: ASSET_KEYS.character.map, path: assetUrl(PUBLIC_ASSET_FILES.character.map) },
+  { key: ASSET_KEYS.character.clear, path: assetUrl(PUBLIC_ASSET_FILES.character.clear) },
+  { key: ASSET_KEYS.character.fail, path: assetUrl(PUBLIC_ASSET_FILES.character.fail) },
+  { key: ASSET_KEYS.terrain.grass, path: assetUrl(PUBLIC_ASSET_FILES.terrain.grass) },
+  { key: ASSET_KEYS.terrain.road, path: assetUrl(PUBLIC_ASSET_FILES.terrain.road) },
+  { key: ASSET_KEYS.terrain.forest, path: assetUrl(PUBLIC_ASSET_FILES.terrain.forest) },
+  { key: ASSET_KEYS.terrain.river, path: assetUrl(PUBLIC_ASSET_FILES.terrain.river) },
+  { key: ASSET_KEYS.terrain.city, path: assetUrl(PUBLIC_ASSET_FILES.terrain.city) },
+  { key: ASSET_KEYS.terrain.railway, path: assetUrl(PUBLIC_ASSET_FILES.terrain.railway) },
+  { key: ASSET_KEYS.terrain.snow, path: assetUrl(PUBLIC_ASSET_FILES.terrain.snow) },
+  { key: ASSET_KEYS.vehicle.compact, path: assetUrl(PUBLIC_ASSET_FILES.vehicle.compact) },
+  { key: ASSET_KEYS.vehicle.sedan, path: assetUrl(PUBLIC_ASSET_FILES.vehicle.sedan) },
+  { key: ASSET_KEYS.vehicle.truck, path: assetUrl(PUBLIC_ASSET_FILES.vehicle.truck) },
+  { key: ASSET_KEYS.vehicle.train, path: assetUrl(PUBLIC_ASSET_FILES.vehicle.train) },
+  { key: ASSET_KEYS.obstacle.logSmall, path: assetUrl(PUBLIC_ASSET_FILES.obstacle.logSmall) },
+  { key: ASSET_KEYS.obstacle.logLong, path: assetUrl(PUBLIC_ASSET_FILES.obstacle.logLong) },
+  { key: ASSET_KEYS.object.coin, path: assetUrl(PUBLIC_ASSET_FILES.object.coin) },
+  { key: ASSET_KEYS.object.finishSign, path: assetUrl(PUBLIC_ASSET_FILES.object.finishSign) },
+  { key: ASSET_KEYS.node.normal, path: assetUrl(PUBLIC_ASSET_FILES.node.normal) },
+  { key: ASSET_KEYS.node.current, path: assetUrl(PUBLIC_ASSET_FILES.node.current) },
+  { key: ASSET_KEYS.node.completed, path: assetUrl(PUBLIC_ASSET_FILES.node.completed) },
+  { key: ASSET_KEYS.node.locked, path: assetUrl(PUBLIC_ASSET_FILES.node.locked) },
+  { key: ASSET_KEYS.ui.settings, path: assetUrl(PUBLIC_ASSET_FILES.ui.settings) },
+  { key: ASSET_KEYS.ui.characterMenu, path: assetUrl(PUBLIC_ASSET_FILES.ui.characterMenu) },
+  { key: ASSET_KEYS.ui.back, path: assetUrl(PUBLIC_ASSET_FILES.ui.back) },
+  { key: ASSET_KEYS.ui.pause, path: assetUrl(PUBLIC_ASSET_FILES.ui.pause) },
+  { key: ASSET_KEYS.ui.close, path: assetUrl(PUBLIC_ASSET_FILES.ui.close) },
+  { key: ASSET_KEYS.ui.lock, path: assetUrl(PUBLIC_ASSET_FILES.ui.lock) },
+  { key: ASSET_KEYS.ui.check, path: assetUrl(PUBLIC_ASSET_FILES.ui.check) },
+  { key: ASSET_KEYS.ui.star, path: assetUrl(PUBLIC_ASSET_FILES.ui.star) },
+  { key: ASSET_KEYS.ui.buttonLarge, path: assetUrl(PUBLIC_ASSET_FILES.ui.buttonLarge) },
+  { key: ASSET_KEYS.ui.buttonSmall, path: assetUrl(PUBLIC_ASSET_FILES.ui.buttonSmall) },
+  { key: ASSET_KEYS.ui.popup, path: assetUrl(PUBLIC_ASSET_FILES.ui.popup) },
+] as const;
+import { assetUrl, PUBLIC_ASSET_FILES } from "./assetPaths";
