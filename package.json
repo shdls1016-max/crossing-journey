@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/assets/assetCatalog.test.ts src/data/gameplayStages.test.ts src/flow/NavigationService.test.ts src/gameplay/RiverSystem.test.ts src/progress/GameProgressService.test.ts"
+    "test": "tsx --test src/assets/assetCatalog.test.ts src/data/gameplayStages.test.ts src/flow/NavigationService.test.ts src/gameplay/ObstacleSpawner.test.ts src/gameplay/PlayerController.test.ts src/gameplay/RiverSystem.test.ts src/progress/GameProgressService.test.ts"
   },
   "dependencies": {
     "phaser": "3.90.0"

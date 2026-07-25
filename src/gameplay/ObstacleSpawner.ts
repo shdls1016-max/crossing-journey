@@ -169,6 +169,7 @@ export class ObstacleSpawner {
       const image = this.scene.add
         .image(0, 0, keyForVehicle(kind))
         .setOrigin(0.5, 0.78)
+        .setFlipX(shouldFlipVehicle(kind, lane.direction))
         .setDepth(18);
       const normalizedOffset = (lane.phase + index * spacing) % 1;
       const collisionScale = kind === "truck" ? 0.58 : 0.5;
@@ -259,6 +260,17 @@ function keyForVehicle(kind: VehicleKind): string {
     default:
       return ASSET_KEYS.vehicle.compact;
   }
+}
+
+function vehicleFacesRight(kind: VehicleKind): boolean {
+  return kind === "sedan";
+}
+
+export function shouldFlipVehicle(
+  kind: VehicleKind,
+  direction: -1 | 1,
+): boolean {
+  return vehicleFacesRight(kind) !== (direction > 0);
 }
 
 function keyForLog(kind: LogKind): string {

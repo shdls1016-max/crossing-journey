@@ -20,11 +20,13 @@ export interface RiverSystemOptions {
 export class RiverSystem {
   private options: RiverSystemOptions | null = null;
   private support: ActiveLog | null = null;
+  private pendingSupport: ActiveLog | null = null;
   private enabled = false;
 
   configure(options: RiverSystemOptions): void {
     this.options = options;
     this.support = null;
+    this.pendingSupport = null;
     this.enabled = true;
   }
 
@@ -80,16 +82,38 @@ export class RiverSystem {
 
   releaseSupport(): void {
     this.support = null;
+    this.pendingSupport = null;
+  }
+
+  beginTransfer(target: ActiveLog | null): void {
+    this.support = null;
+    this.pendingSupport = target;
+  }
+
+  completeTransfer(): void {
+    if (!this.options || !this.pendingSupport) return;
+    const target = this.pendingSupport;
+    this.pendingSupport = null;
+    if (
+      target.image.active &&
+      target.lane === this.options.getPlayerLane()
+    ) {
+      this.support = target;
+    }
   }
 
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
-    if (!enabled) this.support = null;
+    if (!enabled) {
+      this.support = null;
+      this.pendingSupport = null;
+    }
   }
 
   reset(): void {
     this.options = null;
     this.support = null;
+    this.pendingSupport = null;
     this.enabled = false;
   }
 
@@ -97,6 +121,7 @@ export class RiverSystem {
     if (!this.enabled || !this.options) return;
     this.enabled = false;
     this.support = null;
+    this.pendingSupport = null;
     this.options.onFailure();
   }
 }

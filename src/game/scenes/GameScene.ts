@@ -10,9 +10,17 @@ import { SCENE_KEYS } from "../../flow/NavigationService";
 import { gameResultService, saveService, screenFlow } from "../../appServices";
 import { CollisionSystem } from "../../gameplay/CollisionSystem";
 import { gameplaySession } from "../../gameplay/GameplaySessionStore";
-import { ObstacleSpawner, type ObstacleLayout } from "../../gameplay/ObstacleSpawner";
-import { PlayerController, type PlayerGridMetrics } from "../../gameplay/PlayerController";
-import { RiverSystem } from "../../gameplay/RiverSystem";
+import {
+  ObstacleSpawner,
+  type ActiveLog,
+  type ObstacleLayout,
+} from "../../gameplay/ObstacleSpawner";
+import {
+  PlayerController,
+  type MovingTarget,
+  type PlayerGridMetrics,
+} from "../../gameplay/PlayerController";
+import { findSupportingLog, RiverSystem } from "../../gameplay/RiverSystem";
 
 interface GameSceneData {
   stageId?: number;
@@ -30,6 +38,8 @@ interface WaterLaneActor {
   readonly baseX: number;
   readonly phase: number;
 }
+
+const TERRAIN_TILE_WIDTH = 1024;
 
 export class GameScene extends Phaser.Scene {
   private stage!: StageDefinition;
@@ -53,6 +63,7 @@ export class GameScene extends Phaser.Scene {
   private elapsedMs = 0;
   private ended = false;
   private resizeHandler?: (gameSize: Phaser.Structs.Size) => void;
+  private landingLog: ActiveLog | null = null;
 
   constructor() {
     super(SCENE_KEYS.game);
@@ -120,7 +131,11 @@ export class GameScene extends Phaser.Scene {
     if (!this.gameplayStage) return;
     this.playerController.attach(this, this.player, this.getGridMetrics(), {
       startColumn: Math.floor(this.gameplayStage.columns / 2),
-      onMoveStart: () => this.riverSystem.releaseSupport(),
+      resolveMovingTarget: (lane, _column, defaultX) =>
+        this.resolveMovingLogTarget(lane, defaultX),
+      onMoveStart: () => this.riverSystem.beginTransfer(this.landingLog),
+      onBeforeArrive: () => this.riverSystem.completeTransfer(),
+      onMoveFailed: () => this.failRun(),
       onPosition: (x, y) => this.playerShadow.setPosition(x + 3, y - 2),
       onArrive: (lane, column) => this.onPlayerArrive(lane, column),
     });
@@ -199,6 +214,7 @@ export class GameScene extends Phaser.Scene {
         isForestRiver ? ASSET_KEYS.terrain.forest : ASSET_KEYS.terrain.grass,
       )
       .setOrigin(0)
+      .setTileScale(Math.max(1, width / TERRAIN_TILE_WIDTH), 1)
       .setDepth(0);
     this.laneSprites.push(background);
 
@@ -222,6 +238,9 @@ export class GameScene extends Phaser.Scene {
               .tileSprite(0, y, width, this.laneHeight + 1, key)
               .setOrigin(0);
       surface.setDepth(lane.type === "road" || lane.type === "river" ? 5 : 2);
+      if (surface instanceof Phaser.GameObjects.TileSprite) {
+        surface.setTileScale(Math.max(1, width / TERRAIN_TILE_WIDTH), 1);
+      }
       if (lane.type === "start") surface.setTint(0xa4ed87);
       if (lane.type === "finish") surface.setTint(0xb7f29c);
       this.laneSprites.push(surface);
@@ -280,6 +299,45 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     this.riverSystem.handleArrival();
+    this.landingLog = null;
+  }
+
+  private resolveMovingLogTarget(lane: number, defaultX: number): MovingTarget | null {
+    this.landingLog = null;
+    if (this.gameplayStage?.lanes[lane]?.type !== "river") return null;
+    const target = findSupportingLog(
+      defaultX,
+      lane,
+      this.obstacleSpawner.getLogs(),
+    );
+    if (!target) return null;
+
+    this.landingLog = target;
+    const relativeX = Phaser.Math.Clamp(
+      defaultX - target.image.x,
+      -target.supportWidth * 0.5,
+      target.supportWidth * 0.5,
+    );
+    let previousLogX = target.image.x;
+
+    return {
+      getCurrentX: () => {
+        if (!target.image.active) return null;
+        const currentLogX = target.image.x;
+        if (Math.abs(currentLogX - previousLogX) > this.playWidth * 0.5) {
+          return null;
+        }
+        previousLogX = currentLogX;
+        const currentTargetX = currentLogX + relativeX;
+        if (
+          currentTargetX < this.playLeft ||
+          currentTargetX > this.playLeft + this.playWidth
+        ) {
+          return null;
+        }
+        return currentTargetX;
+      },
+    };
   }
 
   private collectCoinAt(lane: number, column: number): void {
@@ -450,6 +508,7 @@ export class GameScene extends Phaser.Scene {
     this.coins.length = 0;
     this.laneSprites.length = 0;
     this.waterLanes.length = 0;
+    this.landingLog = null;
     this.resizeHandler = undefined;
   }
 }
