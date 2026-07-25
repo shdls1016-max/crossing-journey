@@ -37,6 +37,10 @@ const BARRIER_TRANSITION_MS = 650;
 const TRAIN_LEAD_MS = 800;
 const TRAIN_MARGIN = 80;
 const TRAIN_PERSPECTIVE_ANGLE = 22;
+const TRAIN_CARRIAGE_WIDTH_SCALE = 0.64;
+const TRAIN_CARRIAGE_HEIGHT_SCALE = 0.414;
+const TRAIN_HEAD_TO_CARRIAGE_SCALE = 0.86;
+const TRAIN_CARRIAGE_SPACING_SCALE = 0.61;
 
 export class TrainSystem {
   private scene: Phaser.Scene | null = null;
@@ -97,15 +101,21 @@ export class TrainSystem {
       runtime.barrierLeft.setPosition(layout.playLeft + 18, y);
       runtime.barrierRight.setPosition(layout.playLeft + layout.playWidth - 18, y);
 
-      for (const image of runtime.trainImages) {
+      runtime.trainImages.forEach((image, index) => {
+        const isHead = index === 0;
         image
-          .setDisplaySize(trainSize, trainSize)
+          .setDisplaySize(
+            isHead ? trainSize : trainSize * TRAIN_CARRIAGE_WIDTH_SCALE,
+            isHead ? trainSize : trainSize * TRAIN_CARRIAGE_HEIGHT_SCALE,
+          )
           .setFlipX(runtime.definition.direction < 0)
           .setAngle(
-            -TRAIN_PERSPECTIVE_ANGLE * runtime.definition.direction,
+            isHead
+              ? -TRAIN_PERSPECTIVE_ANGLE * runtime.definition.direction
+              : 0,
           )
           .setOrigin(0.5);
-      }
+      });
       this.positionTrain(runtime, 0);
     }
     this.renderAll();
@@ -142,7 +152,13 @@ export class TrainSystem {
     const vehicles: ActiveVehicle[] = [];
     for (let index = 0; index < definition.trainCars; index += 1) {
       const image = scene.add
-        .image(0, 0, ASSET_KEYS.vehicle.train)
+        .image(
+          0,
+          0,
+          index === 0
+            ? ASSET_KEYS.vehicle.train
+            : ASSET_KEYS.vehicle.trainCarriage,
+        )
         .setDepth(18)
         .setVisible(false)
         .setActive(false);
@@ -175,8 +191,9 @@ export class TrainSystem {
     if (!this.layout) return;
     for (const runtime of this.lanes) {
       const trainSize = trainDisplaySize(this.layout.laneHeight);
-      const spacing = trainSize * 0.68;
-      const trainLength = trainSize + spacing * (runtime.definition.trainCars - 1);
+      const trainLength =
+        trainSize +
+        trainOffsetForIndex(runtime.definition.trainCars - 1, trainSize);
       const passMs =
         ((this.layout.width + trainLength + TRAIN_MARGIN * 2) /
           runtime.definition.speed) *
@@ -229,8 +246,9 @@ export class TrainSystem {
   private positionTrain(runtime: TrainLaneRuntime, progress: number): void {
     if (!this.layout) return;
     const trainSize = trainDisplaySize(this.layout.laneHeight);
-    const spacing = trainSize * 0.68;
-    const trainLength = trainSize + spacing * (runtime.definition.trainCars - 1);
+    const trainLength =
+      trainSize +
+      trainOffsetForIndex(runtime.definition.trainCars - 1, trainSize);
     const start =
       runtime.definition.direction > 0
         ? -TRAIN_MARGIN - trainLength * 0.5
@@ -242,12 +260,15 @@ export class TrainSystem {
 
     runtime.trainImages.forEach((image, index) => {
       image.setPosition(
-        headX - runtime.definition.direction * index * spacing,
+        headX -
+          runtime.definition.direction * trainOffsetForIndex(index, trainSize),
         y,
       );
       const vehicle = runtime.vehicles[index]!;
-      vehicle.collisionWidth = trainSize * 0.7;
-      vehicle.collisionHeight = this.layout!.laneHeight * 0.58;
+      vehicle.collisionWidth =
+        trainSize * (index === 0 ? 0.7 : TRAIN_CARRIAGE_WIDTH_SCALE * 0.9);
+      vehicle.collisionHeight =
+        this.layout!.laneHeight * (index === 0 ? 0.58 : 0.5);
     });
   }
 }
@@ -305,6 +326,14 @@ function snapshot(
 
 function trainDisplaySize(laneHeight: number): number {
   return Math.min(164, laneHeight * 1.58);
+}
+
+function trainOffsetForIndex(index: number, trainSize: number): number {
+  if (index <= 0) return 0;
+  return (
+    trainSize * TRAIN_HEAD_TO_CARRIAGE_SCALE +
+    trainSize * TRAIN_CARRIAGE_SPACING_SCALE * (index - 1)
+  );
 }
 
 function drawBarrier(

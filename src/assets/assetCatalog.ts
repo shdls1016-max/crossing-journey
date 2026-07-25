@@ -31,6 +31,7 @@ export const ASSET_KEYS = {
     sedan: "vehicle-car-sedan",
     truck: "vehicle-truck",
     train: "vehicle-train",
+    trainCarriage: "vehicle-train-carriage",
   },
   obstacle: {
     logSmall: "obstacle-log-small",
@@ -82,6 +83,10 @@ export const IMAGE_ASSETS: readonly ImageAsset[] = [
   { key: ASSET_KEYS.vehicle.sedan, path: assetUrl(PUBLIC_ASSET_FILES.vehicle.sedan) },
   { key: ASSET_KEYS.vehicle.truck, path: assetUrl(PUBLIC_ASSET_FILES.vehicle.truck) },
   { key: ASSET_KEYS.vehicle.train, path: assetUrl(PUBLIC_ASSET_FILES.vehicle.train) },
+  {
+    key: ASSET_KEYS.vehicle.trainCarriage,
+    path: assetUrl(PUBLIC_ASSET_FILES.vehicle.trainCarriage),
+  },
   { key: ASSET_KEYS.obstacle.logSmall, path: assetUrl(PUBLIC_ASSET_FILES.obstacle.logSmall) },
   { key: ASSET_KEYS.obstacle.logLong, path: assetUrl(PUBLIC_ASSET_FILES.obstacle.logLong) },
   { key: ASSET_KEYS.object.coin, path: assetUrl(PUBLIC_ASSET_FILES.object.coin) },

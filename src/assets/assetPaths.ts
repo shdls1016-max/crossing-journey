@@ -26,6 +26,7 @@ export const PUBLIC_ASSET_FILES = {
     sedan: "assets/vehicles/car-sedan.png",
     truck: "assets/vehicles/truck.png",
     train: "assets/vehicles/train.png",
+    trainCarriage: "assets/vehicles/train-carriage.png",
   },
   obstacle: {
     logSmall: "assets/obstacles/log-small.png",

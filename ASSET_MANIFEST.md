@@ -42,6 +42,7 @@
 | `public/assets/vehicles/car-sedan.png` | 소형 자동차 B | 768×768 | 예 | `(50%, 82%)` | 아니오 | Stage 1~20 | 속도·방향·간격 변경, 제한된 코드 tint 적용 |
 | `public/assets/vehicles/truck.png` | 공용 트럭 | 1024×1024 | 예 | `(50%, 82%)` | 아니오 | Stage 1~20 | 모든 지역의 대형 차량 |
 | `public/assets/vehicles/train.png` | 공용 기차 | 1024×1024 | 예 | `(50%, 82%)` | 아니오 | Stage 11~20 | 철도 구간, 속도와 등장 타이밍은 코드로 조절 |
+| `public/assets/vehicles/train-carriage.png` | 기차 길이 조절용 중간 객차 | 1069×691 | 예 | `(50%, 50%)` | 아니오 | Stage 11~20 | `train.png` 뒤에 반복 연결하여 기차 길이 조절 |
 
 ## 장애물·수집물·목표물
 
