@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import {
   navigationService,
+  characterService,
   saveService,
   screenFlow,
   settingsService,
@@ -21,6 +22,7 @@ new AppShell(uiRoot, {
   settings: settingsService,
   sound: soundService,
   vibration: vibrationService,
+  characters: characterService,
 });
 
 const game = new Phaser.Game(createGameConfig());

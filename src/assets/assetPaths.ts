@@ -5,6 +5,12 @@ export const PUBLIC_ASSET_FILES = {
     map: "assets/characters/character-main-map-v3.png",
     clear: "assets/characters/character-main-clear-v3.png",
     fail: "assets/characters/character-main-fail-v3.png",
+    otter: {
+      idle: "assets/characters/character-otter-idle-proposal-v1.png",
+      walk: "assets/characters/character-otter-walk-proposal-v1.png",
+      clear: "assets/characters/character-otter-clear-proposal-v1.png",
+      fail: "assets/characters/character-otter-fail-proposal-v1.png",
+    },
   },
   terrain: {
     grass: "assets/terrain/safe-grass-tile.png",
@@ -58,6 +64,15 @@ export const DOM_ASSETS = {
   character: {
     reference: assetUrl(PUBLIC_ASSET_FILES.character.reference),
     play: assetUrl(PUBLIC_ASSET_FILES.character.play),
+    map: assetUrl(PUBLIC_ASSET_FILES.character.map),
+    clear: assetUrl(PUBLIC_ASSET_FILES.character.clear),
+    fail: assetUrl(PUBLIC_ASSET_FILES.character.fail),
+    otter: {
+      idle: assetUrl(PUBLIC_ASSET_FILES.character.otter.idle),
+      walk: assetUrl(PUBLIC_ASSET_FILES.character.otter.walk),
+      clear: assetUrl(PUBLIC_ASSET_FILES.character.otter.clear),
+      fail: assetUrl(PUBLIC_ASSET_FILES.character.otter.fail),
+    },
   },
   object: {
     coin: assetUrl(PUBLIC_ASSET_FILES.object.coin),

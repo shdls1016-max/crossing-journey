@@ -5,6 +5,7 @@ import {
   type GameSettings,
   type PendingStageUnlock,
 } from "./saveTypes";
+import { isCharacterId } from "../characters/characterCatalog";
 
 const STORAGE_KEY = "crossing-journey.save";
 const MAX_STAGE = 20;
@@ -83,12 +84,12 @@ function sanitizeSave(value: unknown): GameSaveData {
   const source = asRecord(value);
   const purchased = Array.isArray(source.purchasedCharacters)
     ? source.purchasedCharacters.filter(
-        (entry): entry is string => typeof entry === "string" && entry.length > 0,
+        (entry): entry is string => isCharacterId(entry),
       )
     : fallback.purchasedCharacters;
   const uniquePurchased = [...new Set(["main", ...purchased])];
   const selected =
-    typeof source.selectedCharacter === "string" &&
+    isCharacterId(source.selectedCharacter) &&
     uniquePurchased.includes(source.selectedCharacter)
       ? source.selectedCharacter
       : "main";

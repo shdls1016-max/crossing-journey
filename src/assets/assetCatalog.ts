@@ -10,6 +10,12 @@ export const ASSET_KEYS = {
     map: "character-main-map",
     clear: "character-main-clear",
     fail: "character-main-fail",
+    otter: {
+      idle: "character-otter-idle",
+      walk: "character-otter-walk",
+      clear: "character-otter-clear",
+      fail: "character-otter-fail",
+    },
   },
   terrain: {
     grass: "terrain-safe-grass",
@@ -61,6 +67,10 @@ export const IMAGE_ASSETS: readonly ImageAsset[] = [
   { key: ASSET_KEYS.character.map, path: assetUrl(PUBLIC_ASSET_FILES.character.map) },
   { key: ASSET_KEYS.character.clear, path: assetUrl(PUBLIC_ASSET_FILES.character.clear) },
   { key: ASSET_KEYS.character.fail, path: assetUrl(PUBLIC_ASSET_FILES.character.fail) },
+  { key: ASSET_KEYS.character.otter.idle, path: assetUrl(PUBLIC_ASSET_FILES.character.otter.idle) },
+  { key: ASSET_KEYS.character.otter.walk, path: assetUrl(PUBLIC_ASSET_FILES.character.otter.walk) },
+  { key: ASSET_KEYS.character.otter.clear, path: assetUrl(PUBLIC_ASSET_FILES.character.otter.clear) },
+  { key: ASSET_KEYS.character.otter.fail, path: assetUrl(PUBLIC_ASSET_FILES.character.otter.fail) },
   { key: ASSET_KEYS.terrain.grass, path: assetUrl(PUBLIC_ASSET_FILES.terrain.grass) },
   { key: ASSET_KEYS.terrain.road, path: assetUrl(PUBLIC_ASSET_FILES.terrain.road) },
   { key: ASSET_KEYS.terrain.forest, path: assetUrl(PUBLIC_ASSET_FILES.terrain.forest) },

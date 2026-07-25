@@ -53,7 +53,7 @@ export class NavigationService {
 
   toGame(stageId: number): void {
     const playableStageId = Math.floor(stageId);
-    if (playableStageId < 1 || playableStageId > 10) return;
+    if (playableStageId < 1 || playableStageId > 20) return;
     const current = this.flow.getSnapshot();
     if (
       current.screen === "game" &&

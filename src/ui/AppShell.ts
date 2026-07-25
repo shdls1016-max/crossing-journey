@@ -13,6 +13,8 @@ import {
 } from "../gameplay/GameplaySessionStore";
 import { createGameButton } from "./components/GameButton";
 import { createGamePopup } from "./components/GamePopup";
+import type { CharacterService } from "../characters/CharacterService";
+import { CHARACTERS } from "../characters/characterCatalog";
 
 export interface AppShellDependencies {
   flow: ScreenFlowStore;
@@ -21,6 +23,7 @@ export interface AppShellDependencies {
   settings: SettingsService;
   sound: SoundService;
   vibration: VibrationService;
+  characters: CharacterService;
 }
 
 export class AppShell {
@@ -229,23 +232,66 @@ export class AppShell {
 
     const copy = document.createElement("p");
     copy.className = "character-screen__copy";
-    copy.textContent = "선택 및 구매 기능 연결 준비";
+    copy.textContent = "함께 여행할 캐릭터를 선택하세요";
 
-    const art = document.createElement("img");
-    art.className = "character-screen__art";
-    art.src = DOM_ASSETS.character.reference;
-    art.alt = "현재 선택된 메인 캐릭터";
+    const list = document.createElement("div");
+    list.className = "character-screen__list";
 
-    const status = document.createElement("div");
-    status.className = "character-screen__status";
-    const check = document.createElement("img");
-    check.src = DOM_ASSETS.ui.check;
-    check.alt = "";
-    const statusText = document.createElement("span");
-    statusText.textContent = "선택됨";
-    status.append(check, statusText);
+    for (const character of CHARACTERS) {
+      const purchased = this.saveState.purchasedCharacters.includes(character.id);
+      const selected = this.saveState.selectedCharacter === character.id;
+      const canPurchase = this.saveState.coins >= character.price;
+      const card = document.createElement("article");
+      card.className = [
+        "character-card",
+        selected ? "character-card--selected" : "",
+      ].filter(Boolean).join(" ");
 
-    screen.append(title, copy, art, status);
+      const art = document.createElement("img");
+      art.className = "character-card__art";
+      art.src = character.dom.idle;
+      art.alt = character.name;
+
+      const name = document.createElement("h2");
+      name.className = "character-card__name";
+      name.textContent = character.name;
+
+      const status = document.createElement("div");
+      status.className = "character-card__status";
+      if (selected) {
+        const check = document.createElement("img");
+        check.src = DOM_ASSETS.ui.check;
+        check.alt = "";
+        status.append(check, document.createTextNode("사용 중"));
+      } else if (purchased) {
+        status.textContent = "보유 중";
+      } else {
+        const coin = document.createElement("img");
+        coin.src = DOM_ASSETS.object.coin;
+        coin.alt = "";
+        status.append(coin, document.createTextNode(String(character.price)));
+      }
+
+      const action = createGameButton({
+        label: selected ? "사용 중" : purchased ? "장착" : `${character.price} 구매`,
+        ariaLabel: selected
+          ? `${character.name} 사용 중`
+          : purchased
+            ? `${character.name} 장착`
+            : `${character.name} ${character.price}코인으로 구매`,
+        size: "small",
+        disabled: selected || (!purchased && !canPurchase),
+        className: purchased && !selected
+          ? "character-card__action popup-action--primary"
+          : "character-card__action popup-action--secondary",
+        onClick: () => this.dependencies.characters.purchaseOrEquip(character.id),
+      });
+
+      card.append(art, name, status, action);
+      list.append(card);
+    }
+
+    screen.append(title, copy, list);
     return screen;
   }
 
@@ -300,7 +346,7 @@ export class AppShell {
           title: "Stage Complete",
           content: this.createRunSummary(true),
           actions: [
-            ...(stage < 10
+            ...(stage < 20
               ? [
                   {
                     label: "Next Stage",
@@ -380,7 +426,8 @@ export class AppShell {
         {
           label: "PLAY",
           className: "game-button--play",
-          disabled: stageId > 10,
+          disabled:
+            stageId > this.saveState.highestUnlockedStage || stageId > 20,
           onClick: () => {
             if (this.launchingStage) return;
             this.launchingStage = true;

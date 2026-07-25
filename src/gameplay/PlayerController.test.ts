@@ -165,3 +165,35 @@ test("a jump fails only when its moving target becomes invalid", () => {
   assert.equal(failures, 1);
   assert.equal(arrivals, 0);
 });
+
+test("a closed railway barrier rejects entry before a jump starts", () => {
+  const harness = createControllerHarness();
+  const controller = new PlayerController();
+  let checkedLane = -1;
+
+  controller.attach(
+    harness.scene,
+    harness.player,
+    {
+      columns: 1,
+      laneCount: 2,
+      columnX: () => 50,
+      laneY: (lane) => lane * 100,
+    },
+    {
+      startColumn: 0,
+      canMoveTo: (_fromLane, _fromColumn, toLane) => {
+        checkedLane = toLane;
+        return false;
+      },
+      onPosition: () => undefined,
+      onArrive: () => undefined,
+    },
+  );
+
+  controller.requestMove("forward");
+
+  assert.equal(checkedLane, 1);
+  assert.equal(harness.getCounter(), null);
+  assert.equal(controller.getLane(), 0);
+});

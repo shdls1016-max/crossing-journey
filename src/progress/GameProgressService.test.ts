@@ -119,3 +119,29 @@ test("failure opens only the failure popup and never unlocks a stage", () => {
   assert.equal(saves.getSnapshot().highestUnlockedStage, 1);
   assert.equal(saves.getSnapshot().pendingStageUnlock, null);
 });
+
+test("Stage 10 unlocks Stage 11 and city stages continue sequentially", () => {
+  const saves = new SaveService(new MemoryStorage());
+  saves.update((draft) => {
+    draft.highestUnlockedStage = 10;
+    draft.unlockAnimationSeenThroughStage = 10;
+    for (let stage = 1; stage < 10; stage += 1) {
+      draft.clearedStages[String(stage)] = true;
+    }
+  });
+  const progress = new GameProgressService(saves);
+
+  for (let stage = 10; stage <= 15; stage += 1) {
+    const result = progress.recordClear({
+      stageId: stage,
+      score: stage * 1_000,
+      stars: 2,
+    });
+    assert.equal(result.unlockedStage, stage + 1);
+    assert.equal(saves.getSnapshot().highestUnlockedStage, stage + 1);
+    assert.deepEqual(progress.consumePendingUnlock(), {
+      fromStage: stage,
+      toStage: stage + 1,
+    });
+  }
+});

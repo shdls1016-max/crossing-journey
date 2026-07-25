@@ -6,8 +6,10 @@ import { GameResultService } from "./progress/GameResultService";
 import { SettingsService } from "./settings/SettingsService";
 import { VibrationService } from "./settings/VibrationService";
 import { SaveService } from "./storage/SaveService";
+import { CharacterService } from "./characters/CharacterService";
 
 export const saveService = new SaveService();
+export const characterService = new CharacterService(saveService);
 export const progressService = new GameProgressService(saveService);
 export const settingsService = new SettingsService(saveService);
 export const soundService = new SoundService(settingsService);

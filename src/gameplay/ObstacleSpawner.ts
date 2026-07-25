@@ -21,8 +21,8 @@ export interface ActiveVehicle {
   readonly lane: number;
   readonly direction: -1 | 1;
   readonly speed: number;
-  readonly collisionWidth: number;
-  readonly collisionHeight: number;
+  collisionWidth: number;
+  collisionHeight: number;
 }
 
 interface MutableVehicle extends ActiveVehicle {
@@ -81,9 +81,18 @@ export class ObstacleSpawner {
       vehicle.image.x += vehicle.speed * vehicle.direction * seconds;
       const margin = vehicle.image.displayWidth * 0.65;
       if (vehicle.direction > 0 && vehicle.image.x > this.layout.width + margin) {
-        vehicle.image.x = -margin;
+        vehicle.image.x =
+          (this.stage?.id ?? 0) >= 11
+            ? this.findOpenVehicleSpawnX(vehicle, -margin)
+            : -margin;
       } else if (vehicle.direction < 0 && vehicle.image.x < -margin) {
-        vehicle.image.x = this.layout.width + margin;
+        vehicle.image.x =
+          (this.stage?.id ?? 0) >= 11
+            ? this.findOpenVehicleSpawnX(
+                vehicle,
+                this.layout.width + margin,
+              )
+            : this.layout.width + margin;
       }
     }
     for (const log of this.logs) {
@@ -134,6 +143,7 @@ export class ObstacleSpawner {
       log.supportWidth = logVisibleWidth(log.kind, displaySize);
       log.frameDeltaX = 0;
     }
+    if ((this.stage?.id ?? 0) >= 11) this.separateOverlappingVehicles();
     this.separateOverlappingLogs();
   }
 
@@ -226,6 +236,48 @@ export class ObstacleSpawner {
           : overlapping.image.x + separation;
     }
     return spawnX;
+  }
+
+  private findOpenVehicleSpawnX(
+    vehicle: MutableVehicle,
+    initialX: number,
+  ): number {
+    let spawnX = initialX;
+    for (let attempt = 0; attempt < this.vehicles.length; attempt += 1) {
+      const overlapping = this.vehicles.find(
+        (candidate) =>
+          candidate !== vehicle &&
+          candidate.lane === vehicle.lane &&
+          Math.abs(spawnX - candidate.image.x) <
+            (vehicle.collisionWidth + candidate.collisionWidth) * 0.5 + 12,
+      );
+      if (!overlapping) break;
+      const separation =
+        (vehicle.collisionWidth + overlapping.collisionWidth) * 0.5 + 12;
+      spawnX =
+        vehicle.direction > 0
+          ? overlapping.image.x - separation
+          : overlapping.image.x + separation;
+    }
+    return spawnX;
+  }
+
+  private separateOverlappingVehicles(): void {
+    const laneIndexes = new Set(this.vehicles.map((vehicle) => vehicle.lane));
+    for (const lane of laneIndexes) {
+      const laneVehicles = this.vehicles
+        .filter((vehicle) => vehicle.lane === lane)
+        .sort((left, right) => left.image.x - right.image.x);
+      for (let index = 1; index < laneVehicles.length; index += 1) {
+        const previous = laneVehicles[index - 1]!;
+        const current = laneVehicles[index]!;
+        const minimumDistance =
+          (previous.collisionWidth + current.collisionWidth) * 0.5 + 12;
+        if (current.image.x - previous.image.x < minimumDistance) {
+          current.image.x = previous.image.x + minimumDistance;
+        }
+      }
+    }
   }
 
   private separateOverlappingLogs(): void {

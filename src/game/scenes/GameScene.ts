@@ -21,6 +21,8 @@ import {
   type PlayerGridMetrics,
 } from "../../gameplay/PlayerController";
 import { findSupportingLog, RiverSystem } from "../../gameplay/RiverSystem";
+import { getCharacter, type CharacterDefinition } from "../../characters/characterCatalog";
+import { TrainSystem } from "../../gameplay/TrainSystem";
 
 interface GameSceneData {
   stageId?: number;
@@ -48,6 +50,7 @@ export class GameScene extends Phaser.Scene {
   private readonly obstacleSpawner = new ObstacleSpawner();
   private readonly collisionSystem = new CollisionSystem();
   private readonly riverSystem = new RiverSystem();
+  private readonly trainSystem = new TrainSystem();
   private readonly laneSprites: Phaser.GameObjects.GameObject[] = [];
   private readonly waterLanes: WaterLaneActor[] = [];
   private readonly coins: CoinActor[] = [];
@@ -64,6 +67,7 @@ export class GameScene extends Phaser.Scene {
   private ended = false;
   private resizeHandler?: (gameSize: Phaser.Structs.Size) => void;
   private landingLog: ActiveLog | null = null;
+  private characterDefinition: CharacterDefinition = getCharacter("main");
 
   constructor() {
     super(SCENE_KEYS.game);
@@ -75,6 +79,7 @@ export class GameScene extends Phaser.Scene {
     this.gameplayStage = getGameplayStage(requestedStage);
     this.elapsedMs = 0;
     this.ended = false;
+    this.characterDefinition = getCharacter(saveService.getSnapshot().selectedCharacter);
   }
 
   create(): void {
@@ -99,6 +104,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.gameplayStage || this.ended || this.scene.isPaused()) return;
     this.elapsedMs += Math.min(delta, 100);
     this.obstacleSpawner.update(delta);
+    this.trainSystem.update(delta);
     this.animateWater(delta);
     this.riverSystem.update();
     this.collisionSystem.update();
@@ -114,7 +120,7 @@ export class GameScene extends Phaser.Scene {
       .ellipse(0, 0, 48, 16, 0x23435d, 0.18)
       .setDepth(19);
     this.player = this.add
-      .image(0, 0, ASSET_KEYS.character.play)
+      .image(0, 0, this.characterDefinition.texture.walk)
       .setOrigin(0.5, 0.88)
       .setDepth(20);
 
@@ -131,6 +137,8 @@ export class GameScene extends Phaser.Scene {
     if (!this.gameplayStage) return;
     this.playerController.attach(this, this.player, this.getGridMetrics(), {
       startColumn: Math.floor(this.gameplayStage.columns / 2),
+      canMoveTo: (_fromLane, _fromColumn, toLane) =>
+        !this.trainSystem.isLaneBlocked(toLane),
       resolveMovingTarget: (lane, _column, defaultX) =>
         this.resolveMovingLogTarget(lane, defaultX),
       onMoveStart: () => this.riverSystem.beginTransfer(this.landingLog),
@@ -140,6 +148,7 @@ export class GameScene extends Phaser.Scene {
       onArrive: (lane, column) => this.onPlayerArrive(lane, column),
     });
     this.obstacleSpawner.configure(this, this.gameplayStage, this.getObstacleLayout());
+    this.trainSystem.configure(this, this.gameplayStage, this.getObstacleLayout());
     this.riverSystem.configure({
       player: this.player,
       getPlayerLane: () => this.playerController.getLane(),
@@ -156,7 +165,10 @@ export class GameScene extends Phaser.Scene {
     this.collisionSystem.configure({
       player: this.player,
       getPlayerLane: () => this.playerController.getLane(),
-      getVehicles: () => this.obstacleSpawner.getVehicles(),
+      getVehicles: () => [
+        ...this.obstacleSpawner.getVehicles(),
+        ...this.trainSystem.getVehicles(),
+      ],
       onCollision: () => this.handleVehicleCollision(),
     });
   }
@@ -189,6 +201,7 @@ export class GameScene extends Phaser.Scene {
       }
       this.playerController.setMetrics(this.getGridMetrics(), preserveRiverPosition);
       this.obstacleSpawner.relayout(this.getObstacleLayout(), true);
+      this.trainSystem.relayout(this.getObstacleLayout());
     }
 
     const cameraWorldHeight = Math.max(height, this.worldHeight);
@@ -205,29 +218,42 @@ export class GameScene extends Phaser.Scene {
     this.waterLanes.length = 0;
 
     const isForestRiver = this.stage.region === "forest-river";
+    const isCity = this.stage.region === "city-rail";
+    const isSnow = this.stage.region === "snow-night";
+    const safeTerrain = isCity
+      ? ASSET_KEYS.terrain.city
+      : isForestRiver
+        ? ASSET_KEYS.terrain.forest
+        : ASSET_KEYS.terrain.grass;
     const background = this.add
       .tileSprite(
+        -1,
         0,
-        0,
-        width,
+        width + 2,
         this.worldHeight,
-        isForestRiver ? ASSET_KEYS.terrain.forest : ASSET_KEYS.terrain.grass,
+        safeTerrain,
       )
       .setOrigin(0)
       .setTileScale(Math.max(1, width / TERRAIN_TILE_WIDTH), 1)
       .setDepth(0);
+    if (isSnow) background.setTint(0xdceee8);
     this.laneSprites.push(background);
 
     this.gameplayStage.lanes.forEach((lane, laneIndex) => {
       const y = this.laneY(laneIndex) - this.laneHeight / 2;
+      const isHazardLane =
+        lane.type === "road" ||
+        lane.type === "river" ||
+        lane.type === "railway";
+      if (isSnow && !isHazardLane) return;
       const key =
         lane.type === "road"
           ? ASSET_KEYS.terrain.road
           : lane.type === "river"
             ? ASSET_KEYS.terrain.river
-            : isForestRiver
-              ? ASSET_KEYS.terrain.forest
-              : ASSET_KEYS.terrain.grass;
+            : lane.type === "railway"
+              ? ASSET_KEYS.terrain.railway
+              : safeTerrain;
       const surface =
         lane.type === "river"
           ? this.add
@@ -235,14 +261,39 @@ export class GameScene extends Phaser.Scene {
               .setOrigin(0)
               .setDisplaySize(width + 32, this.laneHeight + 1)
           : this.add
-              .tileSprite(0, y, width, this.laneHeight + 1, key)
+              .tileSprite(-1, y, width + 2, this.laneHeight + 1, key)
               .setOrigin(0);
-      surface.setDepth(lane.type === "road" || lane.type === "river" ? 5 : 2);
+      surface.setDepth(
+        lane.type === "road" ||
+          lane.type === "river" ||
+          lane.type === "railway"
+          ? 5
+          : 2,
+      );
       if (surface instanceof Phaser.GameObjects.TileSprite) {
         surface.setTileScale(Math.max(1, width / TERRAIN_TILE_WIDTH), 1);
+        if (lane.type === "railway") surface.tilePositionY = 160;
+        else if (
+          lane.type !== "road" &&
+          lane.type !== "river"
+        ) {
+          surface.tilePositionY = y;
+        }
       }
       if (lane.type === "start") surface.setTint(0xa4ed87);
       if (lane.type === "finish") surface.setTint(0xb7f29c);
+      if (isCity && lane.type !== "road" && lane.type !== "railway") {
+        surface.setTint(0xe4f0f3);
+      }
+      if (isSnow) {
+        surface.setTint(
+          lane.type === "river"
+            ? 0xc8f1fb
+            : lane.type === "road" || lane.type === "railway"
+              ? 0xc9d8df
+              : 0xdceee8,
+        );
+      }
       this.laneSprites.push(surface);
 
       if (lane.type === "river") {
@@ -263,9 +314,38 @@ export class GameScene extends Phaser.Scene {
         for (let x = 8; x < width; x += dashWidth + gap) {
           markings.lineBetween(x, y + this.laneHeight / 2, x + dashWidth, y + this.laneHeight / 2);
         }
+        if (isCity) {
+          const crossingCenter = this.playLeft + this.playWidth * 0.5;
+          markings.fillStyle(0xfff7ea, 0.76);
+          for (let offset = -54; offset <= 54; offset += 18) {
+            markings.fillRoundedRect(
+              crossingCenter + offset - 5,
+              y + this.laneHeight * 0.14,
+              10,
+              this.laneHeight * 0.72,
+              3,
+            );
+          }
+        }
         this.laneSprites.push(markings);
       }
     });
+
+    if (isSnow) {
+      const snow = this.add
+        .tileSprite(
+          -1,
+          0,
+          width + 2,
+          this.worldHeight,
+          ASSET_KEYS.terrain.snow,
+        )
+        .setOrigin(0)
+        .setTileScale(Math.max(1, width / TERRAIN_TILE_WIDTH), 1)
+        .setAlpha(0.5)
+        .setDepth(7);
+      this.laneSprites.push(snow);
+    }
   }
 
   private positionWorldActors(): void {
@@ -365,8 +445,10 @@ export class GameScene extends Phaser.Scene {
   private failRun(): void {
     if (!this.gameplayStage || this.ended) return;
     this.ended = true;
+    this.player.setTexture(this.characterDefinition.texture.fail);
     this.playerController.setEnabled(false);
     this.obstacleSpawner.setRunning(false);
+    this.trainSystem.setRunning(false);
     this.collisionSystem.setEnabled(false);
     this.riverSystem.setEnabled(false);
     const progress = this.playerController.getLane() / (this.gameplayStage.lanes.length - 1);
@@ -377,7 +459,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleVehicleCollision(): void {
-    this.player.setTexture(ASSET_KEYS.character.fail);
     this.failRun();
   }
 
@@ -386,6 +467,7 @@ export class GameScene extends Phaser.Scene {
     this.ended = true;
     this.playerController.setEnabled(false);
     this.obstacleSpawner.setRunning(false);
+    this.trainSystem.setRunning(false);
     this.collisionSystem.setEnabled(false);
     this.riverSystem.setEnabled(false);
     const session = gameplaySession.getSnapshot();
@@ -401,7 +483,7 @@ export class GameScene extends Phaser.Scene {
     const awardedCoins =
       session.collectedCoins + (firstClear ? this.stage.baseCoinReward : 0);
 
-    this.player.setTexture(ASSET_KEYS.character.clear);
+    this.player.setTexture(this.characterDefinition.texture.clear);
     this.tweens.add({
       targets: this.player,
       y: this.player.y - 16,
@@ -503,6 +585,7 @@ export class GameScene extends Phaser.Scene {
     if (this.resizeHandler) this.scale.off(Phaser.Scale.Events.RESIZE, this.resizeHandler);
     this.playerController.destroy();
     this.obstacleSpawner.reset();
+    this.trainSystem.reset();
     this.collisionSystem.reset();
     this.riverSystem.reset();
     this.coins.length = 0;

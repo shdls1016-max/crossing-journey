@@ -10,6 +10,7 @@ import { getStage, STAGES, type StageRegion } from "../../data/stages";
 import { SCENE_KEYS } from "../../flow/NavigationService";
 import type { FlowState } from "../../flow/ScreenFlowStore";
 import type { GameSaveData, PendingStageUnlock } from "../../storage/saveTypes";
+import { getCharacter } from "../../characters/characterCatalog";
 
 interface StagePoint {
   stageId: number;
@@ -68,6 +69,7 @@ export class WorldMapScene extends Phaser.Scene {
   private lastPointerY = 0;
   private dragDistance = 0;
   private unsubscribeFlow: (() => void) | null = null;
+  private unsubscribeSave: (() => void) | null = null;
 
   constructor() {
     super(SCENE_KEYS.worldMap);
@@ -82,6 +84,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.bindInput();
 
     this.unsubscribeFlow = screenFlow.subscribe((state) => this.onFlowChange(state));
+    this.unsubscribeSave = saveService.subscribe((save) => this.onSaveChange(save));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
 
     if (this.pendingUnlock) {
@@ -523,7 +526,7 @@ export class WorldMapScene extends Phaser.Scene {
       .image(
         point.x + this.characterOffsetX,
         point.y + this.characterOffsetY,
-        ASSET_KEYS.character.reference,
+        getCharacter(this.saveSnapshot.selectedCharacter).texture.idle,
       )
       .setOrigin(0.5, 0.88)
       .setDisplaySize(characterSize, characterSize)
@@ -663,7 +666,7 @@ export class WorldMapScene extends Phaser.Scene {
   private playUnlockAnimation(unlock: PendingStageUnlock): void {
     if (this.unlockAnimationStarted || !this.character) return;
     this.unlockAnimationStarted = true;
-    this.character.setTexture(ASSET_KEYS.character.play);
+    this.character.setTexture(getCharacter(this.saveSnapshot.selectedCharacter).texture.walk);
     const curve = this.stageCurves.get(unlock.fromStage);
     const destination = this.stagePoints.get(unlock.toStage);
     if (!curve || !destination) {
@@ -707,7 +710,7 @@ export class WorldMapScene extends Phaser.Scene {
     if (!this.character) return;
     const point = this.stagePoints.get(stageId)!;
     this.character
-      .setTexture(ASSET_KEYS.character.reference)
+      .setTexture(getCharacter(this.saveSnapshot.selectedCharacter).texture.idle)
       .setPosition(
         point.x + this.characterOffsetX,
         point.y + this.characterOffsetY,
@@ -748,6 +751,18 @@ export class WorldMapScene extends Phaser.Scene {
     }
   }
 
+  private onSaveChange(save: Readonly<GameSaveData>): void {
+    const previousCharacter = this.saveSnapshot.selectedCharacter;
+    this.saveSnapshot = save;
+    if (
+      this.character &&
+      previousCharacter !== save.selectedCharacter &&
+      !this.unlockAnimationStarted
+    ) {
+      this.character.setTexture(getCharacter(save.selectedCharacter).texture.idle);
+    }
+  }
+
   private clampCamera(viewHeight: number): void {
     const maxScroll = Math.max(0, this.mapHeight - viewHeight);
     this.cameras.main.scrollY = Phaser.Math.Clamp(
@@ -760,6 +775,8 @@ export class WorldMapScene extends Phaser.Scene {
   private cleanup(): void {
     this.unsubscribeFlow?.();
     this.unsubscribeFlow = null;
+    this.unsubscribeSave?.();
+    this.unsubscribeSave = null;
     this.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
     this.input.off(Phaser.Input.Events.POINTER_MOVE, this.handlePointerMove, this);
     this.input.off(Phaser.Input.Events.POINTER_UP, this.handlePointerUp, this);

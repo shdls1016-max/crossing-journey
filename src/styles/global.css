@@ -395,29 +395,92 @@ input {
   font-weight: 800;
 }
 
-.character-screen__art {
-  width: min(70dvw, 360px);
-  max-height: min(55dvh, 460px);
-  object-fit: contain;
-  filter: drop-shadow(0 16px 22px rgba(30, 82, 102, 0.2));
+.character-screen__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 3.5vw, 22px);
+  width: min(92dvw, 720px);
 }
 
-.character-screen__status {
+.character-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  margin-top: -6px;
-  padding: 7px 15px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 247, 234, 0.94);
-  color: var(--color-text);
-  font-weight: 900;
+  min-width: 0;
+  padding: clamp(12px, 3vw, 20px);
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  border-radius: 28px;
+  background: rgba(255, 247, 234, 0.9);
   box-shadow: var(--shadow-ui);
 }
 
-.character-screen__status img {
+.character-card--selected {
+  border-color: rgba(31, 191, 196, 0.72);
+  box-shadow:
+    0 0 0 4px rgba(31, 191, 196, 0.15),
+    var(--shadow-ui);
+}
+
+.character-card__art {
+  width: min(33dvw, 230px);
+  max-height: min(40dvh, 300px);
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 18px rgba(30, 82, 102, 0.18));
+}
+
+.character-card__name {
+  margin: -4px 0 6px;
+  color: var(--color-text);
+  font-size: clamp(19px, 5vw, 27px);
+  font-weight: 900;
+}
+
+.character-card__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 7px 15px;
+  border-radius: var(--radius-pill);
+  background: rgba(234, 247, 251, 0.92);
+  color: var(--color-text);
+  font-weight: 900;
+}
+
+.character-card__status img {
   width: 24px;
   height: 24px;
+  object-fit: contain;
+}
+
+.character-card__action {
+  width: min(100%, 168px);
+  min-width: 0;
+  margin-top: 12px;
+}
+
+@media (max-width: 430px) {
+  .character-screen {
+    padding-right: calc(var(--safe-right) + 12px);
+    padding-left: calc(var(--safe-left) + 12px);
+  }
+
+  .character-screen__list {
+    gap: 10px;
+    width: 100%;
+  }
+
+  .character-card {
+    padding: 10px 8px 12px;
+    border-radius: 22px;
+  }
+
+  .character-card__status {
+    padding-right: 10px;
+    padding-left: 10px;
+    font-size: 14px;
+  }
 }
 
 .popup-backdrop {
