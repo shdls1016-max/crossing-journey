@@ -85,6 +85,7 @@ export class WorldMapScene extends Phaser.Scene {
 
     this.unsubscribeFlow = screenFlow.subscribe((state) => this.onFlowChange(state));
     this.unsubscribeSave = saveService.subscribe((save) => this.onSaveChange(save));
+    this.events.on(Phaser.Scenes.Events.WAKE, this.handleWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
 
     if (this.pendingUnlock) {
@@ -724,6 +725,8 @@ export class WorldMapScene extends Phaser.Scene {
     const view = this.nodeViews.get(stageId);
     if (view) this.selectNode(view, false);
     this.pendingUnlock = null;
+    this.clearStarsAnimationStarted = false;
+    this.unlockAnimationStarted = false;
     this.time.delayedCall(520, () => screenFlow.openStageCard(stageId));
   }
 
@@ -763,6 +766,13 @@ export class WorldMapScene extends Phaser.Scene {
     }
   }
 
+  private handleWake(): void {
+    const save = saveService.getSnapshot();
+    this.saveSnapshot = save;
+    if (!this.character || this.unlockAnimationStarted) return;
+    this.character.setTexture(getCharacter(save.selectedCharacter).texture.idle);
+  }
+
   private clampCamera(viewHeight: number): void {
     const maxScroll = Math.max(0, this.mapHeight - viewHeight);
     this.cameras.main.scrollY = Phaser.Math.Clamp(
@@ -777,6 +787,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.unsubscribeFlow = null;
     this.unsubscribeSave?.();
     this.unsubscribeSave = null;
+    this.events.off(Phaser.Scenes.Events.WAKE, this.handleWake, this);
     this.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
     this.input.off(Phaser.Input.Events.POINTER_MOVE, this.handlePointerMove, this);
     this.input.off(Phaser.Input.Events.POINTER_UP, this.handlePointerUp, this);

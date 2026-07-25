@@ -137,8 +137,6 @@ export class GameScene extends Phaser.Scene {
     if (!this.gameplayStage) return;
     this.playerController.attach(this, this.player, this.getGridMetrics(), {
       startColumn: Math.floor(this.gameplayStage.columns / 2),
-      canMoveTo: (_fromLane, _fromColumn, toLane) =>
-        !this.trainSystem.isLaneBlocked(toLane),
       resolveMovingTarget: (lane, _column, defaultX) =>
         this.resolveMovingLogTarget(lane, defaultX),
       onMoveStart: () => this.riverSystem.beginTransfer(this.landingLog),
@@ -316,13 +314,18 @@ export class GameScene extends Phaser.Scene {
         }
         if (isCity) {
           const crossingCenter = this.playLeft + this.playWidth * 0.5;
+          const crossingWidth = Math.min(96, this.playWidth * 0.22);
           markings.fillStyle(0xfff7ea, 0.76);
-          for (let offset = -54; offset <= 54; offset += 18) {
+          for (
+            let stripeY = y + this.laneHeight * 0.12;
+            stripeY < y + this.laneHeight * 0.86;
+            stripeY += 17
+          ) {
             markings.fillRoundedRect(
-              crossingCenter + offset - 5,
-              y + this.laneHeight * 0.14,
-              10,
-              this.laneHeight * 0.72,
+              crossingCenter - crossingWidth * 0.5,
+              stripeY,
+              crossingWidth,
+              9,
               3,
             );
           }

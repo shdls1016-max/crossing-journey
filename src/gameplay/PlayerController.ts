@@ -15,12 +15,6 @@ export interface MovingTarget {
 
 export interface PlayerControllerOptions {
   readonly startColumn: number;
-  readonly canMoveTo?: (
-    fromLane: number,
-    fromColumn: number,
-    toLane: number,
-    toColumn: number,
-  ) => boolean;
   readonly onMoveStart?: (
     fromLane: number,
     fromColumn: number,
@@ -136,17 +130,6 @@ export class PlayerController {
 
     const next = this.resolveDestination(direction);
     if (!next || (next.lane === this.lane && next.column === this.column)) return;
-    if (
-      this.options.canMoveTo &&
-      !this.options.canMoveTo(
-        this.lane,
-        this.column,
-        next.lane,
-        next.column,
-      )
-    ) {
-      return;
-    }
 
     const fromX = this.player.x;
     const fromY = this.player.y;

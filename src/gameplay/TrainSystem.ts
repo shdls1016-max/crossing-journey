@@ -36,6 +36,7 @@ interface TrainLaneRuntime {
 const BARRIER_TRANSITION_MS = 650;
 const TRAIN_LEAD_MS = 800;
 const TRAIN_MARGIN = 80;
+const TRAIN_PERSPECTIVE_ANGLE = 22;
 
 export class TrainSystem {
   private scene: Phaser.Scene | null = null;
@@ -100,22 +101,14 @@ export class TrainSystem {
         image
           .setDisplaySize(trainSize, trainSize)
           .setFlipX(runtime.definition.direction < 0)
-          .setOrigin(0.5, 0.78);
+          .setAngle(
+            -TRAIN_PERSPECTIVE_ANGLE * runtime.definition.direction,
+          )
+          .setOrigin(0.5);
       }
       this.positionTrain(runtime, 0);
     }
     this.renderAll();
-  }
-
-  isLaneBlocked(lane: number): boolean {
-    const runtime = this.lanes.find((candidate) => candidate.lane === lane);
-    if (!runtime) return false;
-    return (
-      runtime.phase === "closing" ||
-      runtime.phase === "waiting" ||
-      runtime.phase === "passing" ||
-      runtime.phase === "opening"
-    );
   }
 
   getVehicles(): readonly ActiveVehicle[] {
