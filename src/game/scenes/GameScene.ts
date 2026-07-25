@@ -25,8 +25,10 @@ interface CoinActor {
 }
 
 interface WaterLaneActor {
-  readonly tile: Phaser.GameObjects.TileSprite;
+  readonly image: Phaser.GameObjects.Image;
   readonly direction: -1 | 1;
+  readonly baseX: number;
+  readonly phase: number;
 }
 
 export class GameScene extends Phaser.Scene {
@@ -210,17 +212,28 @@ export class GameScene extends Phaser.Scene {
             : isForestRiver
               ? ASSET_KEYS.terrain.forest
               : ASSET_KEYS.terrain.grass;
-      const tile = this.add
-        .tileSprite(0, y, width, this.laneHeight + 1, key)
-        .setOrigin(0)
-        .setDepth(lane.type === "road" || lane.type === "river" ? 5 : 2);
-      if (lane.type === "start") tile.setTint(0xa4ed87);
-      if (lane.type === "finish") tile.setTint(0xb7f29c);
-      this.laneSprites.push(tile);
+      const surface =
+        lane.type === "river"
+          ? this.add
+              .image(-16, y, key)
+              .setOrigin(0)
+              .setDisplaySize(width + 32, this.laneHeight + 1)
+          : this.add
+              .tileSprite(0, y, width, this.laneHeight + 1, key)
+              .setOrigin(0);
+      surface.setDepth(lane.type === "road" || lane.type === "river" ? 5 : 2);
+      if (lane.type === "start") surface.setTint(0xa4ed87);
+      if (lane.type === "finish") surface.setTint(0xb7f29c);
+      this.laneSprites.push(surface);
 
       if (lane.type === "river") {
-        tile.setTint(0xb8f4ff);
-        this.waterLanes.push({ tile, direction: lane.direction });
+        surface.setTint(0xb8f4ff);
+        this.waterLanes.push({
+          image: surface as Phaser.GameObjects.Image,
+          direction: lane.direction,
+          baseX: -16,
+          phase: laneIndex * 0.7,
+        });
       }
 
       if (lane.type === "road") {
@@ -384,10 +397,13 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.scrollY = Phaser.Math.Linear(this.cameras.main.scrollY, target, amount);
   }
 
-  private animateWater(delta: number): void {
-    const movement = Math.min(delta, 50) * 0.018;
+  private animateWater(_delta: number): void {
     for (const water of this.waterLanes) {
-      water.tile.tilePositionX += water.direction * movement;
+      water.image.x =
+        water.baseX +
+        Math.sin(this.elapsedMs * 0.0012 + water.phase) *
+          10 *
+          water.direction;
     }
   }
 

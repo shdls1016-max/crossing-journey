@@ -43,6 +43,11 @@ interface MutableLog extends ActiveLog {
   readonly normalizedOffset: number;
 }
 
+const LOG_TOP_DOWN_ANGLE = 18;
+const LOG_VISUAL_HEIGHT_SCALE = 0.82;
+const LOG_LANDING_OFFSET = 0.16;
+const LOG_MINIMUM_GAP = 8;
+
 export class ObstacleSpawner {
   private scene: Phaser.Scene | null = null;
   private stage: GameplayStageDefinition | null = null;
@@ -88,9 +93,9 @@ export class ObstacleSpawner {
       const left = this.layout.playLeft;
       const right = left + this.layout.playWidth;
       if (log.direction > 0 && log.image.x > right + margin) {
-        log.image.x = left - margin;
+        log.image.x = this.findOpenSpawnX(log, left - margin);
       } else if (log.direction < 0 && log.image.x < left - margin) {
-        log.image.x = right + margin;
+        log.image.x = this.findOpenSpawnX(log, right + margin);
       }
     }
   }
@@ -115,17 +120,21 @@ export class ObstacleSpawner {
     }
     for (const log of this.logs) {
       const displaySize = logDisplaySize(log.kind, layout.laneHeight);
-      log.image.setDisplaySize(displaySize, displaySize);
-      log.image.y = layout.laneY(log.lane) + layout.laneHeight * 0.08;
+      log.image
+        .setDisplaySize(displaySize, displaySize * LOG_VISUAL_HEIGHT_SCALE)
+        .setAngle(LOG_TOP_DOWN_ANGLE);
+      log.image.y =
+        layout.laneY(log.lane) + layout.laneHeight * LOG_LANDING_OFFSET;
       log.image.x = preservePositions
         ? layout.playLeft +
           ((log.image.x - previousPlayLeft) / previousPlayWidth) * layout.playWidth
         : log.direction > 0
           ? layout.playLeft + log.normalizedOffset * layout.playWidth
           : layout.playLeft + (1 - log.normalizedOffset) * layout.playWidth;
-      log.supportWidth = displaySize * logSupportScale(log.kind);
+      log.supportWidth = logVisibleWidth(log.kind, displaySize);
       log.frameDeltaX = 0;
     }
+    this.separateOverlappingLogs();
   }
 
   setRunning(running: boolean): void {
@@ -182,7 +191,7 @@ export class ObstacleSpawner {
       const kind = lane.logs[index % lane.logs.length] ?? "medium";
       const image = this.scene.add
         .image(0, 0, keyForLog(kind))
-        .setOrigin(0.5, 0.58)
+        .setOrigin(0.5)
         .setDepth(17);
       this.logs.push({
         image,
@@ -194,6 +203,45 @@ export class ObstacleSpawner {
         supportWidth: 0,
         frameDeltaX: 0,
       });
+    }
+  }
+
+  private findOpenSpawnX(log: MutableLog, initialX: number): number {
+    const direction = log.direction;
+    let spawnX = initialX;
+    for (let attempt = 0; attempt < this.logs.length; attempt += 1) {
+      const overlapping = this.logs.find(
+        (candidate) =>
+          candidate !== log &&
+          candidate.lane === log.lane &&
+          logsOverlapAt(spawnX, log.supportWidth, candidate.image.x, candidate.supportWidth),
+      );
+      if (!overlapping) break;
+      const separation =
+        (log.supportWidth + overlapping.supportWidth) * 0.5 + LOG_MINIMUM_GAP;
+      spawnX =
+        direction > 0
+          ? overlapping.image.x - separation
+          : overlapping.image.x + separation;
+    }
+    return spawnX;
+  }
+
+  private separateOverlappingLogs(): void {
+    const laneIndexes = new Set(this.logs.map((log) => log.lane));
+    for (const lane of laneIndexes) {
+      const laneLogs = this.logs
+        .filter((log) => log.lane === lane)
+        .sort((left, right) => left.image.x - right.image.x);
+      for (let index = 1; index < laneLogs.length; index += 1) {
+        const previous = laneLogs[index - 1]!;
+        const current = laneLogs[index]!;
+        const minimumDistance =
+          (previous.supportWidth + current.supportWidth) * 0.5 + LOG_MINIMUM_GAP;
+        if (current.image.x - previous.image.x < minimumDistance) {
+          current.image.x = previous.image.x + minimumDistance;
+        }
+      }
     }
   }
 }
@@ -228,13 +276,16 @@ function logDisplaySize(kind: LogKind, laneHeight: number): number {
   }
 }
 
-function logSupportScale(kind: LogKind): number {
-  switch (kind) {
-    case "short":
-      return 0.54;
-    case "long":
-      return 0.58;
-    default:
-      return 0.56;
-  }
+function logVisibleWidth(kind: LogKind, displaySize: number): number {
+  return displaySize * (kind === "short" ? 0.78 : 1.02);
+}
+
+function logsOverlapAt(
+  leftX: number,
+  leftWidth: number,
+  rightX: number,
+  rightWidth: number,
+): boolean {
+  const minimumDistance = (leftWidth + rightWidth) * 0.5 + LOG_MINIMUM_GAP;
+  return Math.abs(leftX - rightX) < minimumDistance;
 }

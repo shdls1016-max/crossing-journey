@@ -37,6 +37,20 @@ export class NavigationService {
     }
   }
 
+  resumeGame(): void {
+    const state = this.flow.getSnapshot();
+    if (state.screen !== "game" || state.popup !== "pause") return;
+    this.flow.closePopup();
+    if (!this.game) return;
+    this.game.loop.wake();
+    this.game.input.enabled = true;
+    const scene = this.game.scene.getScene(SCENE_KEYS.game);
+    scene.input.enabled = true;
+    if (this.game.scene.isPaused(SCENE_KEYS.game)) {
+      this.game.scene.resume(SCENE_KEYS.game);
+    }
+  }
+
   toGame(stageId: number): void {
     const playableStageId = Math.floor(stageId);
     if (playableStageId < 1 || playableStageId > 10) return;

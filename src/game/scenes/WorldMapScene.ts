@@ -414,7 +414,7 @@ export class WorldMapScene extends Phaser.Scene {
     const initialStage = this.pendingUnlock?.fromStage ?? this.saveSnapshot.highestUnlockedStage;
     const point = this.stagePoints.get(initialStage)!;
     const characterSize = nodeSize * 1.22;
-    this.characterOffsetX = -nodeSize * 0.22;
+    this.characterOffsetX = 0;
     this.characterOffsetY = -nodeSize * 0.16;
     this.characterShadow = this.add
       .ellipse(

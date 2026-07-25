@@ -251,6 +251,7 @@ export class AppShell {
 
   private createPopup(): HTMLElement {
     const close = () => this.dependencies.flow.closePopup();
+    const resume = () => this.dependencies.navigation.resumeGame();
     const stage = this.flowState.activeStage;
 
     switch (this.flowState.popup) {
@@ -258,12 +259,12 @@ export class AppShell {
         return createGamePopup({
           title: "일시정지",
           body: "잠시 쉬었다가 이어서 건너세요.",
-          onClose: close,
+          onClose: resume,
           actions: [
             {
               label: "Continue",
               className: "popup-action popup-action--primary",
-              onClick: close,
+              onClick: resume,
             },
             {
               label: "Retry",

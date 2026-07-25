@@ -29,6 +29,15 @@ test("support selection keeps the current log and otherwise chooses the nearest"
   assert.equal(findSupportingLog(200, 1, [left, right]), null);
 });
 
+test("the player's foot remains supported across the visible log width", () => {
+  const log = createLog(100, 1, 120);
+
+  assert.equal(findSupportingLog(40, 1, [log]), log);
+  assert.equal(findSupportingLog(160, 1, [log]), log);
+  assert.equal(findSupportingLog(39.99, 1, [log]), null);
+  assert.equal(findSupportingLog(160.01, 1, [log]), null);
+});
+
 test("a rider follows the log and fails when support is lost", () => {
   const player = { x: 100, y: 240 } as Phaser.GameObjects.Image;
   const log = createLog(100);

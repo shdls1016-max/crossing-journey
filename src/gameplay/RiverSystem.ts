@@ -102,7 +102,7 @@ export class RiverSystem {
 }
 
 export function findSupportingLog(
-  playerX: number,
+  playerFootX: number,
   lane: number,
   logs: readonly ActiveLog[],
   preferred: ActiveLog | null = null,
@@ -111,13 +111,13 @@ export function findSupportingLog(
     (log) =>
       log.lane === lane &&
       log.image.active &&
-      Math.abs(playerX - log.image.x) <= log.supportWidth * 0.5 + 6,
+      Math.abs(playerFootX - log.image.x) <= log.supportWidth * 0.5,
   );
   if (preferred && candidates.includes(preferred)) return preferred;
   return (
     candidates.sort(
       (left, right) =>
-        Math.abs(playerX - left.image.x) - Math.abs(playerX - right.image.x),
+        Math.abs(playerFootX - left.image.x) - Math.abs(playerFootX - right.image.x),
     )[0] ?? null
   );
 }
