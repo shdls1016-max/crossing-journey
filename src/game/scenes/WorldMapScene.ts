@@ -23,8 +23,18 @@ interface StageNodeView {
   node: Phaser.GameObjects.Image;
   glow: Phaser.GameObjects.Graphics;
   lock: Phaser.GameObjects.Image | null;
+  stars: NodeStarView[];
   selectable: boolean;
   current: boolean;
+}
+
+interface NodeStarView {
+  image: Phaser.GameObjects.Image;
+  slotX: number;
+  slotY: number;
+  scaleX: number;
+  scaleY: number;
+  filled: boolean;
 }
 
 const STAGE_SPACING = 228;
@@ -52,6 +62,7 @@ export class WorldMapScene extends Phaser.Scene {
   private characterOffsetY = 0;
   private saveSnapshot!: Readonly<GameSaveData>;
   private pendingUnlock: PendingStageUnlock | null = null;
+  private clearStarsAnimationStarted = false;
   private unlockAnimationStarted = false;
   private dragStartY = 0;
   private lastPointerY = 0;
@@ -63,6 +74,8 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.clearStarsAnimationStarted = false;
+    this.unlockAnimationStarted = false;
     this.pendingUnlock = progressService.consumePendingUnlock();
     this.saveSnapshot = saveService.getSnapshot();
     this.buildMap(this.scale.width, this.scale.height);
@@ -72,7 +85,7 @@ export class WorldMapScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
 
     if (this.pendingUnlock) {
-      this.time.delayedCall(380, () => this.playUnlockAnimation(this.pendingUnlock!));
+      this.time.delayedCall(280, () => this.playClearStarsAnimation(this.pendingUnlock!));
     } else {
       this.startCharacterIdle();
     }
@@ -332,13 +345,18 @@ export class WorldMapScene extends Phaser.Scene {
       container.add(number);
 
       let lock: Phaser.GameObjects.Image | null = null;
+      let stars: NodeStarView[] = [];
       if (locked) {
         lock = this.add
           .image(0, nodeSize * 0.2, ASSET_KEYS.ui.lock)
           .setDisplaySize(nodeSize * 0.28, nodeSize * 0.28);
         container.add(lock);
       } else if (cleared) {
-        this.addNodeStars(container, nodeSize, this.saveSnapshot.stageStars[stageKey] ?? 0);
+        stars = this.addNodeStars(
+          container,
+          nodeSize,
+          this.saveSnapshot.stageStars[stageKey] ?? 0,
+        );
       }
 
       const view: StageNodeView = {
@@ -347,9 +365,13 @@ export class WorldMapScene extends Phaser.Scene {
         node,
         glow,
         lock,
+        stars,
         selectable: !locked,
         current,
       };
+      if (this.pendingUnlock?.fromStage === stage.id) {
+        this.prepareClearStars(view);
+      }
       this.nodeViews.set(stage.id, view);
 
       node.on(Phaser.Input.Events.POINTER_DOWN, () => {
@@ -404,15 +426,79 @@ export class WorldMapScene extends Phaser.Scene {
     container: Phaser.GameObjects.Container,
     nodeSize: number,
     earnedStars: number,
-  ): void {
+  ): NodeStarView[] {
+    const stars: NodeStarView[] = [];
     for (let index = 0; index < 3; index += 1) {
+      const slotX = (index - 1) * nodeSize * 0.19;
+      const slotY = nodeSize * 0.43;
+      const filled = index < earnedStars;
       const star = this.add
-        .image((index - 1) * nodeSize * 0.19, nodeSize * 0.43, ASSET_KEYS.ui.star)
+        .image(slotX, slotY, ASSET_KEYS.ui.star)
         .setDisplaySize(nodeSize * 0.2, nodeSize * 0.2);
-      if (index >= earnedStars) {
+      if (!filled) {
         star.setTint(0x6f7d8a).setAlpha(0.36);
       }
       container.add(star);
+      stars.push({
+        image: star,
+        slotX,
+        slotY,
+        scaleX: star.scaleX,
+        scaleY: star.scaleY,
+        filled,
+      });
+    }
+    return stars;
+  }
+
+  private prepareClearStars(view: StageNodeView): void {
+    for (const star of view.stars) {
+      if (!star.filled) continue;
+      star.image
+        .setPosition(0, 0)
+        .setAlpha(0)
+        .setScale(star.scaleX * 0.35, star.scaleY * 0.35);
+    }
+  }
+
+  private playClearStarsAnimation(unlock: PendingStageUnlock): void {
+    if (this.clearStarsAnimationStarted || this.unlockAnimationStarted) return;
+    this.clearStarsAnimationStarted = true;
+    const view = this.nodeViews.get(unlock.fromStage);
+    const filledStars = view?.stars.filter((star) => star.filled) ?? [];
+    if (filledStars.length === 0) {
+      this.playUnlockAnimation(unlock);
+      return;
+    }
+
+    filledStars.forEach((star, index) => {
+      this.tweens.add({
+        targets: star.image,
+        x: star.slotX,
+        y: star.slotY,
+        alpha: 1,
+        scaleX: star.scaleX,
+        scaleY: star.scaleY,
+        duration: 360,
+        delay: index * 130,
+        ease: "Back.Out",
+        onComplete:
+          index === filledStars.length - 1
+            ? () => this.time.delayedCall(220, () => this.playUnlockAnimation(unlock))
+            : undefined,
+      });
+    });
+  }
+
+  private restoreClearStars(stageId: number): void {
+    const view = this.nodeViews.get(stageId);
+    if (!view) return;
+    for (const star of view.stars) {
+      if (!star.filled) continue;
+      star.image
+        .setPosition(star.slotX, star.slotY)
+        .setAlpha(1)
+        .setScale(star.scaleX, star.scaleY);
     }
   }
 
@@ -496,10 +582,12 @@ export class WorldMapScene extends Phaser.Scene {
       return;
     }
     const interruptedUnlock =
-      this.pendingUnlock !== null && this.unlockAnimationStarted;
+      this.pendingUnlock !== null &&
+      (this.clearStarsAnimationStarted || this.unlockAnimationStarted);
     const focus = this.saveSnapshot.highestUnlockedStage;
     this.buildMap(gameSize.width, gameSize.height);
     if (interruptedUnlock && this.pendingUnlock) {
+      this.restoreClearStars(this.pendingUnlock.fromStage);
       this.finishUnlockAnimation(this.pendingUnlock.toStage);
       this.pendingUnlock = null;
       return;
@@ -630,35 +718,10 @@ export class WorldMapScene extends Phaser.Scene {
       point.y - 4,
     );
     this.startCharacterIdle();
-    this.playArrivalSparkle(stageId);
     const view = this.nodeViews.get(stageId);
     if (view) this.selectNode(view, false);
     this.pendingUnlock = null;
     this.time.delayedCall(520, () => screenFlow.openStageCard(stageId));
-  }
-
-  private playArrivalSparkle(stageId: number): void {
-    const point = this.stagePoints.get(stageId)!;
-    for (let index = 0; index < 5; index += 1) {
-      const angle = (Math.PI * 2 * index) / 5 - Math.PI / 2;
-      const sparkle = this.add
-        .image(point.x, point.y, ASSET_KEYS.ui.star)
-        .setDisplaySize(24, 24)
-        .setAlpha(0)
-        .setDepth(DESIGN_TOKENS.depth.effect);
-      this.tweens.add({
-        targets: sparkle,
-        x: point.x + Math.cos(angle) * 62,
-        y: point.y + Math.sin(angle) * 50,
-        alpha: { from: 0, to: 1 },
-        scale: { from: 0.45, to: 1.1 },
-        duration: 380,
-        yoyo: true,
-        hold: 80,
-        delay: index * 45,
-        onComplete: () => sparkle.destroy(),
-      });
-    }
   }
 
   private startCharacterIdle(): void {
