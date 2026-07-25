@@ -82,6 +82,43 @@ test("a jump follows the same relative point on a moving target", () => {
   assert.deepEqual(events, ["support", "arrive"]);
 });
 
+test("a lane-changing jump targets the player's current foot position", () => {
+  const harness = createControllerHarness();
+  const controller = new PlayerController();
+  let targetReferenceX = 0;
+  let targetX = 180;
+
+  controller.attach(
+    harness.scene,
+    harness.player,
+    {
+      columns: 3,
+      laneCount: 2,
+      columnX: () => 100,
+      laneY: (lane) => lane * 100,
+    },
+    {
+      startColumn: 1,
+      resolveMovingTarget: (_lane, _column, defaultX) => {
+        targetReferenceX = defaultX;
+        return { getCurrentX: () => targetX };
+      },
+      onPosition: () => undefined,
+      onArrive: () => undefined,
+    },
+  );
+
+  harness.player.setPosition(180, 0);
+  controller.requestMove("forward");
+  const counter = harness.getCounter();
+  assert.ok(counter);
+  assert.equal(targetReferenceX, 180);
+
+  targetX = 166;
+  counter.onComplete();
+  assert.equal(harness.playerState.x, 166);
+});
+
 test("a jump fails only when its moving target becomes invalid", () => {
   const harness = createControllerHarness();
   const controller = new PlayerController();

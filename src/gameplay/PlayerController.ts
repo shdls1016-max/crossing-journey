@@ -135,8 +135,18 @@ export class PlayerController {
     const fromY = this.player.y;
     const defaultToX = this.metrics.columnX(next.column);
     const toY = this.metrics.laneY(next.lane);
+    // A carried player can drift away from the logical column center. When
+    // changing lanes, target the log that is visually aligned with the
+    // player's current foot position instead of pulling back to that stale
+    // grid coordinate. Horizontal moves within a lane still use the grid.
+    const movingTargetReferenceX =
+      next.lane === this.lane ? defaultToX : fromX;
     const movingTarget =
-      this.options.resolveMovingTarget?.(next.lane, next.column, defaultToX) ?? null;
+      this.options.resolveMovingTarget?.(
+        next.lane,
+        next.column,
+        movingTargetReferenceX,
+      ) ?? null;
     this.options.onMoveStart?.(this.lane, this.column, next.lane, next.column);
     this.moving = true;
     let moveFailed = false;
