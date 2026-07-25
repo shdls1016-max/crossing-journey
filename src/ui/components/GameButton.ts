@@ -26,10 +26,10 @@ export function createGameButton(options: GameButtonOptions): HTMLButtonElement 
     .join(" ");
   button.disabled = options.disabled ?? false;
   button.setAttribute("aria-label", options.ariaLabel ?? options.label);
-  button.style.setProperty(
-    "--button-image",
-    `url("${options.size === "small" ? DOM_ASSETS.ui.buttonSmall : DOM_ASSETS.ui.buttonLarge}")`,
-  );
+  const buttonImage =
+    options.size === "small" ? DOM_ASSETS.ui.buttonSmall : DOM_ASSETS.ui.buttonLarge;
+  const resolvedButtonImage = new URL(buttonImage, document.baseURI).href;
+  button.style.setProperty("--button-image", `url("${resolvedButtonImage}")`);
 
   if (options.iconPath) {
     const icon = document.createElement("img");

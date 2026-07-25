@@ -430,7 +430,7 @@ export class WorldMapScene extends Phaser.Scene {
       .image(
         point.x + this.characterOffsetX,
         point.y + this.characterOffsetY,
-        ASSET_KEYS.character.play,
+        ASSET_KEYS.character.reference,
       )
       .setOrigin(0.5, 0.88)
       .setDisplaySize(characterSize, characterSize)
@@ -568,6 +568,7 @@ export class WorldMapScene extends Phaser.Scene {
   private playUnlockAnimation(unlock: PendingStageUnlock): void {
     if (this.unlockAnimationStarted || !this.character) return;
     this.unlockAnimationStarted = true;
+    this.character.setTexture(ASSET_KEYS.character.play);
     const curve = this.stageCurves.get(unlock.fromStage);
     const destination = this.stagePoints.get(unlock.toStage);
     if (!curve || !destination) {
@@ -611,6 +612,7 @@ export class WorldMapScene extends Phaser.Scene {
     if (!this.character) return;
     const point = this.stagePoints.get(stageId)!;
     this.character
+      .setTexture(ASSET_KEYS.character.reference)
       .setPosition(
         point.x + this.characterOffsetX,
         point.y + this.characterOffsetY,

@@ -140,7 +140,7 @@ export class GameScene extends Phaser.Scene {
       player: this.player,
       getPlayerLane: () => this.playerController.getLane(),
       getVehicles: () => this.obstacleSpawner.getVehicles(),
-      onCollision: () => this.failRun(),
+      onCollision: () => this.handleVehicleCollision(),
     });
   }
 
@@ -303,6 +303,11 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(260, 0.007);
     this.createFailBurst();
     this.time.delayedCall(650, () => gameResultService.failStage());
+  }
+
+  private handleVehicleCollision(): void {
+    this.player.setTexture(ASSET_KEYS.character.fail);
+    this.failRun();
   }
 
   private clearRun(): void {
