@@ -9,6 +9,7 @@ import {
 import { SCENE_KEYS } from "../../flow/NavigationService";
 import { gameResultService, saveService, screenFlow } from "../../appServices";
 import { CollisionSystem } from "../../gameplay/CollisionSystem";
+import { gameplayInput } from "../../gameplay/GameplayInputService";
 import { gameplaySession } from "../../gameplay/GameplaySessionStore";
 import {
   ObstacleSpawner,
@@ -66,6 +67,7 @@ export class GameScene extends Phaser.Scene {
   private elapsedMs = 0;
   private ended = false;
   private resizeHandler?: (gameSize: Phaser.Structs.Size) => void;
+  private unsubscribeGameplayInput: (() => void) | null = null;
   private landingLog: ActiveLog | null = null;
   private characterDefinition: CharacterDefinition = getCharacter("main");
 
@@ -93,6 +95,10 @@ export class GameScene extends Phaser.Scene {
     this.createWorldActors();
     this.layout(this.scale.width, this.scale.height, true);
     this.attachSystems();
+    this.unsubscribeGameplayInput = gameplayInput.subscribe((direction) => {
+      if (this.ended || this.scene.isPaused()) return;
+      this.playerController.requestMove(direction);
+    });
     this.cameras.main.scrollY = this.cameraTargetY(this.scale.height);
 
     this.resizeHandler = (gameSize) => this.layout(gameSize.width, gameSize.height, false);
@@ -586,6 +592,8 @@ export class GameScene extends Phaser.Scene {
 
   private shutdown(): void {
     if (this.resizeHandler) this.scale.off(Phaser.Scale.Events.RESIZE, this.resizeHandler);
+    this.unsubscribeGameplayInput?.();
+    this.unsubscribeGameplayInput = null;
     this.playerController.destroy();
     this.obstacleSpawner.reset();
     this.trainSystem.reset();

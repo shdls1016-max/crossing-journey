@@ -41,19 +41,23 @@ export function createGamePopup(options: GamePopupOptions): HTMLElement {
     );
   }
 
+  const contentRegion = document.createElement("div");
+  contentRegion.className = "popup-panel__content";
+
   const title = document.createElement("h2");
   title.className = "popup-panel__title";
   title.textContent = options.title;
-  panel.append(title);
+  contentRegion.append(title);
 
   if (options.body) {
     const body = document.createElement("p");
     body.className = "popup-panel__body";
     body.textContent = options.body;
-    panel.append(body);
+    contentRegion.append(body);
   }
 
-  if (options.content) panel.append(options.content);
+  if (options.content) contentRegion.append(options.content);
+  panel.append(contentRegion);
 
   if (options.actions?.length) {
     const actions = document.createElement("div");

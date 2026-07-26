@@ -11,6 +11,7 @@ import {
   gameplaySession,
   type GameplaySessionState,
 } from "../gameplay/GameplaySessionStore";
+import { gameplayInput } from "../gameplay/GameplayInputService";
 import { createGameButton } from "./components/GameButton";
 import { createGamePopup } from "./components/GamePopup";
 import type { CharacterService } from "../characters/CharacterService";
@@ -66,6 +67,13 @@ export class AppShell {
     const safeLayer = document.createElement("div");
     safeLayer.className = "safe-layer";
     safeLayer.append(this.createHud());
+    if (
+      this.flowState.screen === "game" &&
+      this.flowState.popup === null &&
+      this.gameplayState.status === "playing"
+    ) {
+      safeLayer.append(this.createGameControls());
+    }
     this.root.append(safeLayer);
 
     if (this.flowState.screen === "character-select") {
@@ -293,6 +301,48 @@ export class AppShell {
 
     screen.append(title, copy, list);
     return screen;
+  }
+
+  private createGameControls(): HTMLElement {
+    const controls = document.createElement("nav");
+    controls.className = "game-controls";
+    controls.setAttribute("aria-label", "캐릭터 이동");
+
+    const lateral = document.createElement("div");
+    lateral.className = "game-controls__lateral";
+    lateral.append(
+      createGameButton({
+        label: "왼쪽 이동",
+        ariaLabel: "왼쪽 이동",
+        size: "small",
+        iconPath: DOM_ASSETS.ui.back,
+        className:
+          "game-button--round game-button--utility game-control-button game-control-button--left",
+        onClick: () => gameplayInput.requestMove("left"),
+      }),
+      createGameButton({
+        label: "오른쪽 이동",
+        ariaLabel: "오른쪽 이동",
+        size: "small",
+        iconPath: DOM_ASSETS.ui.back,
+        className:
+          "game-button--round game-button--utility game-control-button game-control-button--right",
+        onClick: () => gameplayInput.requestMove("right"),
+      }),
+    );
+
+    const forward = createGameButton({
+      label: "앞으로 이동",
+      ariaLabel: "앞으로 이동",
+      size: "small",
+      iconPath: DOM_ASSETS.ui.back,
+      className:
+        "game-button--round game-control-button game-control-button--forward",
+      onClick: () => gameplayInput.requestMove("forward"),
+    });
+
+    controls.append(lateral, forward);
+    return controls;
   }
 
   private createPopup(): HTMLElement {
