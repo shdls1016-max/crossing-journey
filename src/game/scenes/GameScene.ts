@@ -143,6 +143,9 @@ export class GameScene extends Phaser.Scene {
     if (!this.gameplayStage) return;
     this.playerController.attach(this, this.player, this.getGridMetrics(), {
       startColumn: Math.floor(this.gameplayStage.columns / 2),
+      pointerGestures: window.matchMedia(
+        "(hover: hover) and (pointer: fine) and (min-width: 901px) and (min-height: 581px)",
+      ).matches,
       resolveMovingTarget: (lane, _column, defaultX) =>
         this.resolveMovingLogTarget(lane, defaultX),
       onMoveStart: () => this.riverSystem.beginTransfer(this.landingLog),

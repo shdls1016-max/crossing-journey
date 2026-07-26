@@ -10,13 +10,16 @@ interface CounterConfig {
 
 function createControllerHarness() {
   let counter: CounterConfig | null = null;
+  const inputEvents: string[] = [];
   const scene = {
     input: {
       keyboard: {
         on: () => undefined,
         off: () => undefined,
       },
-      on: () => undefined,
+      on: (event: string) => {
+        inputEvents.push(event);
+      },
       off: () => undefined,
     },
     tweens: {
@@ -40,9 +43,34 @@ function createControllerHarness() {
     scene,
     player,
     playerState: playerObject,
+    inputEvents,
     getCounter: () => counter,
   };
 }
+
+test("pointer gestures are not registered when on-screen controls are active", () => {
+  const harness = createControllerHarness();
+  const controller = new PlayerController();
+
+  controller.attach(
+    harness.scene,
+    harness.player,
+    {
+      columns: 3,
+      laneCount: 2,
+      columnX: (column) => column * 100,
+      laneY: (lane) => lane * 100,
+    },
+    {
+      startColumn: 1,
+      pointerGestures: false,
+      onPosition: () => undefined,
+      onArrive: () => undefined,
+    },
+  );
+
+  assert.deepEqual(harness.inputEvents, []);
+});
 
 test("a jump follows the same relative point on a moving target", () => {
   const harness = createControllerHarness();

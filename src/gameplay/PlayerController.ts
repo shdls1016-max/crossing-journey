@@ -15,6 +15,7 @@ export interface MovingTarget {
 
 export interface PlayerControllerOptions {
   readonly startColumn: number;
+  readonly pointerGestures?: boolean;
   readonly onMoveStart?: (
     fromLane: number,
     fromColumn: number,
@@ -74,26 +75,28 @@ export class PlayerController {
     };
     scene.input.keyboard?.on("keydown", this.keyboardHandler);
 
-    this.pointerDownHandler = (pointer) => {
-      if (!this.enabled) return;
-      this.pointerStart = { x: pointer.x, y: pointer.y };
-    };
-    this.pointerUpHandler = (pointer) => {
-      if (!this.enabled || !this.pointerStart) return;
-      const deltaX = pointer.x - this.pointerStart.x;
-      const deltaY = pointer.y - this.pointerStart.y;
-      this.pointerStart = null;
-      const distance = Math.hypot(deltaX, deltaY);
-      if (distance < 28) {
-        this.requestMove("forward");
-      } else if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        this.requestMove(deltaX > 0 ? "right" : "left");
-      } else {
-        this.requestMove(deltaY > 0 ? "backward" : "forward");
-      }
-    };
-    scene.input.on("pointerdown", this.pointerDownHandler);
-    scene.input.on("pointerup", this.pointerUpHandler);
+    if (options.pointerGestures !== false) {
+      this.pointerDownHandler = (pointer) => {
+        if (!this.enabled) return;
+        this.pointerStart = { x: pointer.x, y: pointer.y };
+      };
+      this.pointerUpHandler = (pointer) => {
+        if (!this.enabled || !this.pointerStart) return;
+        const deltaX = pointer.x - this.pointerStart.x;
+        const deltaY = pointer.y - this.pointerStart.y;
+        this.pointerStart = null;
+        const distance = Math.hypot(deltaX, deltaY);
+        if (distance < 28) {
+          this.requestMove("forward");
+        } else if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          this.requestMove(deltaX > 0 ? "right" : "left");
+        } else {
+          this.requestMove(deltaY > 0 ? "backward" : "forward");
+        }
+      };
+      scene.input.on("pointerdown", this.pointerDownHandler);
+      scene.input.on("pointerup", this.pointerUpHandler);
+    }
   }
 
   setMetrics(metrics: PlayerGridMetrics, preserveHorizontalPosition = false): void {

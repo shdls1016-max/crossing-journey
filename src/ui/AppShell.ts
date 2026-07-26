@@ -337,7 +337,7 @@ export class AppShell {
       size: "small",
       iconPath: DOM_ASSETS.ui.back,
       className:
-        "game-button--round game-control-button game-control-button--forward",
+        "game-button--round game-button--utility game-control-button game-control-button--forward",
       onClick: () => gameplayInput.requestMove("forward"),
     });
 
