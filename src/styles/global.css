@@ -576,7 +576,7 @@ input {
   width: min(86dvw, 520px);
   aspect-ratio: 1;
   max-height: min(78dvh, 520px);
-  padding: clamp(72px, 17%, 108px) clamp(54px, 13%, 82px);
+  padding: clamp(58px, 12%, 72px) clamp(54px, 13%, 82px);
   background-position: center;
   background-size: 100% 100%;
   background-repeat: no-repeat;
@@ -928,7 +928,7 @@ input {
   }
 }
 
-@media (max-height: 720px) and (orientation: landscape) {
+@media (max-height: 580px) and (orientation: landscape) {
   .popup-backdrop {
     padding:
       calc(var(--safe-top) + 10px)
@@ -945,7 +945,7 @@ input {
     height: min(88dvh, 420px);
     max-height: none;
     aspect-ratio: auto;
-    padding: 34px 48px 32px;
+    padding: 34px clamp(58px, 8dvw, 70px) 32px;
     column-gap: clamp(18px, 4dvw, 32px);
   }
 
@@ -997,7 +997,7 @@ input {
   .run-summary,
   .settings-list {
     gap: 6px;
-    width: min(100%, 420px);
+    width: min(92%, 380px);
     max-width: 100%;
     margin-right: auto;
     margin-left: auto;
