@@ -41,7 +41,7 @@ interface NodeStarView {
 const STAGE_SPACING = 228;
 const MAP_PADDING_TOP = 360;
 const MAP_PADDING_BOTTOM = 400;
-const WORLD_TERRAIN_TILE_WIDTH = 1024;
+const WORLD_TERRAIN_TILE_SIZE = 1024;
 
 const PATH_COLORS: Record<StageRegion, number> = {
   meadow: 0xf5d18e,
@@ -112,7 +112,6 @@ export class WorldMapScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, width, this.mapHeight);
     this.createStagePoints(width);
     this.createRegionBackgrounds(width);
-    this.createRegionAccents(width);
     this.createPath();
     this.createDecorations(width);
     this.createStageNodes(width);
@@ -144,18 +143,30 @@ export class WorldMapScene extends Phaser.Scene {
     ] as const;
 
     for (const band of bands) {
+      const height = bandHeight + 2;
+      const tileScale = Math.max(
+        1,
+        width / WORLD_TERRAIN_TILE_SIZE,
+        height / WORLD_TERRAIN_TILE_SIZE,
+      );
       this.add
-        .tileSprite(0, band.y, width, bandHeight + 2, band.key)
+        .tileSprite(0, band.y, width, height, band.key)
         .setOrigin(0)
-        .setTileScale(Math.max(1, width / WORLD_TERRAIN_TILE_WIDTH), 1)
+        .setTileScale(tileScale, tileScale)
         .setTint(band.tint)
         .setDepth(DESIGN_TOKENS.depth.background);
     }
 
+    const snowHeight = bandHeight + 30;
+    const snowTileScale = Math.max(
+      1,
+      width / WORLD_TERRAIN_TILE_SIZE,
+      snowHeight / WORLD_TERRAIN_TILE_SIZE,
+    );
     this.add
-      .tileSprite(0, 0, width, bandHeight + 30, ASSET_KEYS.terrain.snow)
+      .tileSprite(0, 0, width, snowHeight, ASSET_KEYS.terrain.snow)
       .setOrigin(0)
-      .setTileScale(Math.max(1, width / WORLD_TERRAIN_TILE_WIDTH), 1)
+      .setTileScale(snowTileScale, snowTileScale)
       .setAlpha(0.72)
       .setDepth(DESIGN_TOKENS.depth.background + 1);
 
@@ -167,47 +178,6 @@ export class WorldMapScene extends Phaser.Scene {
     const topGlow = this.add.graphics().setDepth(DESIGN_TOKENS.depth.background + 3);
     topGlow.fillStyle(0x5fd8e8, 0.08);
     topGlow.fillRect(0, 0, width, bandHeight * 0.58);
-  }
-
-  private createRegionAccents(width: number): void {
-    const meadowY = this.stagePoints.get(3)!.y + 72;
-    const railY = this.stagePoints.get(13)!.y + 42;
-    const snowRoadY = this.stagePoints.get(18)!.y + 64;
-
-    this.add
-      .tileSprite(0, meadowY, width, 92, ASSET_KEYS.terrain.road)
-      .setOrigin(0)
-      .setTileScale(Math.max(1, width / WORLD_TERRAIN_TILE_WIDTH), 1)
-      .setAlpha(0.36)
-      .setDepth(DESIGN_TOKENS.depth.background + 4);
-    const riverBands = [
-      { y: this.stagePoints.get(6)!.y + 76, height: 76, alpha: 0.52 },
-      { y: this.stagePoints.get(8)!.y + 28, height: 116, alpha: 0.9 },
-      { y: this.stagePoints.get(10)!.y + 62, height: 88, alpha: 0.62 },
-    ] as const;
-    for (const river of riverBands) {
-      this.add
-        .tileSprite(0, river.y, width, river.height, ASSET_KEYS.terrain.river)
-        .setOrigin(0)
-        .setTileScale(Math.max(1, width / WORLD_TERRAIN_TILE_WIDTH), 1)
-        .setTint(0xb8f4ff)
-        .setAlpha(river.alpha)
-        .setDepth(DESIGN_TOKENS.depth.background + 4);
-    }
-    const rail = this.add
-      .tileSprite(0, railY, width, 138, ASSET_KEYS.terrain.railway)
-      .setOrigin(0)
-      .setTileScale(Math.max(1, width / WORLD_TERRAIN_TILE_WIDTH), 1)
-      .setAlpha(0.5)
-      .setDepth(DESIGN_TOKENS.depth.background + 4);
-    rail.tilePositionY = 160;
-    this.add
-      .tileSprite(0, snowRoadY, width, 92, ASSET_KEYS.terrain.road)
-      .setOrigin(0)
-      .setTileScale(Math.max(1, width / WORLD_TERRAIN_TILE_WIDTH), 1)
-      .setTint(0xb9d8e5)
-      .setAlpha(0.34)
-      .setDepth(DESIGN_TOKENS.depth.background + 4);
   }
 
   private createPath(): void {
