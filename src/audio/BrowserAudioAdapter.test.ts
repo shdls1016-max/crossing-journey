@@ -41,6 +41,8 @@ class FakeAudio extends EventTarget {
   removeAttribute(name: string): void {
     if (name === "src") this.src = "";
   }
+
+  setAttribute(): void {}
 }
 
 test("music volume, fade and sound-effect mute state are applied", async () => {

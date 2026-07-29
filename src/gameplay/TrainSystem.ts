@@ -45,7 +45,7 @@ const TRAIN_CARRIAGE_Y_OFFSET = 0.022;
 const TRAIN_HEAD_ALPHA_WIDTH = 0.88;
 const TRAIN_HEAD_ALPHA_HEIGHT = 0.577;
 const TRAIN_CARRIAGE_ALPHA_WIDTH = 0.964;
-const TRAIN_SEGMENT_GAP = -20;
+const TRAIN_SEGMENT_GAP = -12;
 
 export class TrainSystem {
   private scene: Phaser.Scene | null = null;

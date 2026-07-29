@@ -16,11 +16,16 @@ export class BrowserAudioAdapter implements AudioAdapter {
 
   constructor() {
     this.music.loop = true;
+    this.music.autoplay = true;
+    this.music.setAttribute("playsinline", "");
     this.music.preload = "auto";
     this.music.volume = MUSIC_VOLUME;
+    this.music.addEventListener("canplay", this.resumeMusic);
 
     window.addEventListener("pointerdown", this.resumeMusic, { capture: true });
     window.addEventListener("keydown", this.resumeMusic, { capture: true });
+    window.addEventListener("pageshow", this.resumeMusic);
+    window.addEventListener("focus", this.resumeMusic);
   }
 
   setMusicTrack(source: string | null, volumeScale = 1): void {
@@ -123,6 +128,9 @@ export class BrowserAudioAdapter implements AudioAdapter {
   dispose(): void {
     window.removeEventListener("pointerdown", this.resumeMusic, { capture: true });
     window.removeEventListener("keydown", this.resumeMusic, { capture: true });
+    window.removeEventListener("pageshow", this.resumeMusic);
+    window.removeEventListener("focus", this.resumeMusic);
+    this.music.removeEventListener("canplay", this.resumeMusic);
     this.cancelMusicFade();
     this.setSoundEffectsMuted(true);
     this.music.pause();

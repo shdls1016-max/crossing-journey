@@ -65,6 +65,8 @@ export class WorldMapScene extends Phaser.Scene {
   private pendingUnlock: PendingStageUnlock | null = null;
   private clearStarsAnimationStarted = false;
   private unlockAnimationStarted = false;
+  private autoStageCardCancelled = false;
+  private autoStageCardTimer: Phaser.Time.TimerEvent | null = null;
   private dragStartY = 0;
   private lastPointerY = 0;
   private dragDistance = 0;
@@ -78,6 +80,8 @@ export class WorldMapScene extends Phaser.Scene {
   create(): void {
     this.clearStarsAnimationStarted = false;
     this.unlockAnimationStarted = false;
+    this.autoStageCardCancelled = false;
+    this.autoStageCardTimer = null;
     this.pendingUnlock = progressService.consumePendingUnlock();
     this.saveSnapshot = saveService.getSnapshot();
     this.buildMap(this.scale.width, this.scale.height);
@@ -138,7 +142,7 @@ export class WorldMapScene extends Phaser.Scene {
     const bands = [
       { y: 0, key: ASSET_KEYS.terrain.city, tint: 0xcfe9f3 },
       { y: bandHeight, key: ASSET_KEYS.terrain.city, tint: 0xc7d9df },
-      { y: bandHeight * 2, key: ASSET_KEYS.terrain.forest, tint: 0x82b879 },
+      { y: bandHeight * 2, key: ASSET_KEYS.terrain.grass, tint: 0xffffff },
       { y: bandHeight * 3, key: ASSET_KEYS.terrain.grass, tint: 0xffffff },
     ] as const;
 
@@ -157,6 +161,8 @@ export class WorldMapScene extends Phaser.Scene {
         .setDepth(DESIGN_TOKENS.depth.background);
     }
 
+    this.createFeatheredRegionDim(width, bandHeight * 2, bandHeight);
+
     const snowHeight = bandHeight + 30;
     const snowTileScale = Math.max(
       1,
@@ -170,14 +176,85 @@ export class WorldMapScene extends Phaser.Scene {
       .setAlpha(0.72)
       .setDepth(DESIGN_TOKENS.depth.background + 1);
 
-    this.add
-      .rectangle(0, 0, width, bandHeight + 30, 0x152b53, 0.25)
-      .setOrigin(0)
+    const nightDim = this.add
+      .graphics()
       .setDepth(DESIGN_TOKENS.depth.background + 2);
+    const nightFeather = Math.min(220, bandHeight * 0.2);
+    nightDim.fillStyle(0x152b53, 0.25);
+    nightDim.fillRect(0, 0, width, bandHeight - nightFeather);
+    this.addVerticalAlphaGradient(
+      width,
+      bandHeight - nightFeather,
+      nightFeather + 30,
+      0x152b53,
+      0.25,
+      0,
+      DESIGN_TOKENS.depth.background + 2,
+    );
 
     const topGlow = this.add.graphics().setDepth(DESIGN_TOKENS.depth.background + 3);
     topGlow.fillStyle(0x5fd8e8, 0.08);
     topGlow.fillRect(0, 0, width, bandHeight * 0.58);
+  }
+
+  private createFeatheredRegionDim(
+    width: number,
+    y: number,
+    height: number,
+  ): void {
+    const feather = Math.min(220, height * 0.2);
+    const alpha = 0.2;
+    const dim = this.add
+      .graphics()
+      .setDepth(DESIGN_TOKENS.depth.background + 1);
+
+    this.addVerticalAlphaGradient(
+      width,
+      y,
+      feather,
+      0x173a2d,
+      0,
+      alpha,
+      DESIGN_TOKENS.depth.background + 1,
+    );
+    dim.fillStyle(0x173a2d, alpha);
+    dim.fillRect(0, y + feather, width, height - feather * 2);
+    this.addVerticalAlphaGradient(
+      width,
+      y + height - feather,
+      feather,
+      0x173a2d,
+      alpha,
+      0,
+      DESIGN_TOKENS.depth.background + 1,
+    );
+  }
+
+  private addVerticalAlphaGradient(
+    width: number,
+    y: number,
+    height: number,
+    color: number,
+    startAlpha: number,
+    endAlpha: number,
+    depth: number,
+  ): void {
+    const steps = 64;
+    const stepHeight = height / steps;
+    for (let index = 0; index < steps; index += 1) {
+      const progress = Phaser.Math.SmoothStep(index / (steps - 1), 0, 1);
+      this.add
+        .rectangle(
+          0,
+          y + index * stepHeight,
+          width,
+          stepHeight + 1,
+          color,
+          Phaser.Math.Linear(startAlpha, endAlpha, progress),
+        )
+        .setOrigin(0)
+        .setDepth(depth);
+    }
   }
 
   private createPath(): void {
@@ -697,7 +774,23 @@ export class WorldMapScene extends Phaser.Scene {
     this.pendingUnlock = null;
     this.clearStarsAnimationStarted = false;
     this.unlockAnimationStarted = false;
-    this.time.delayedCall(520, () => screenFlow.openStageCard(stageId));
+    if (
+      this.autoStageCardCancelled ||
+      screenFlow.getSnapshot().popup !== null
+    ) {
+      return;
+    }
+    this.autoStageCardTimer = this.time.delayedCall(520, () => {
+      this.autoStageCardTimer = null;
+      if (
+        this.autoStageCardCancelled ||
+        screenFlow.getSnapshot().screen !== "world-map" ||
+        screenFlow.getSnapshot().popup !== null
+      ) {
+        return;
+      }
+      screenFlow.openStageCard(stageId);
+    });
   }
 
   private startCharacterIdle(): void {
@@ -717,6 +810,16 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private onFlowChange(state: Readonly<FlowState>): void {
+    if (
+      (state.screen !== "world-map" || state.popup !== null) &&
+      (this.pendingUnlock !== null ||
+        this.unlockAnimationStarted ||
+        this.autoStageCardTimer !== null)
+    ) {
+      this.autoStageCardCancelled = true;
+      this.autoStageCardTimer?.remove(false);
+      this.autoStageCardTimer = null;
+    }
     if (state.screen !== "world-map") return;
     if (state.selectedStage === null && this.selectedNode) {
       this.resetNodeSelection(this.selectedNode);
@@ -753,6 +856,8 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private cleanup(): void {
+    this.autoStageCardTimer?.remove(false);
+    this.autoStageCardTimer = null;
     this.unsubscribeFlow?.();
     this.unsubscribeFlow = null;
     this.unsubscribeSave?.();

@@ -39,7 +39,7 @@ test("train carriages overlap transparent seams at every gameplay size", () => {
           current.offset -
           previous.offset -
           (previous.visibleWidth + current.visibleWidth) * 0.5;
-        assert.ok(Math.abs(gap + 20) < 1e-6);
+        assert.ok(Math.abs(gap + 12) < 1e-6);
       }
     }
   }
