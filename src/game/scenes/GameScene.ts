@@ -472,7 +472,7 @@ export class GameScene extends Phaser.Scene {
     this.riverSystem.setEnabled(false);
     const progress = this.playerController.getLane() / (this.gameplayStage.lanes.length - 1);
     gameplaySession.fail(progress);
-    soundService.playSoundEffect(SOUND_EFFECTS.gameOver);
+    soundService.playSoundEffect(SOUND_EFFECTS.gameOver, { volumeScale: 1.5 });
     this.cameras.main.shake(260, 0.007);
     this.createFailBurst();
     this.time.delayedCall(650, () => gameResultService.failStage());
@@ -523,8 +523,9 @@ export class GameScene extends Phaser.Scene {
         progress: 1,
         newBest,
       });
-      soundService.playSoundEffect(SOUND_EFFECTS.stageClear);
-      if (newBest) soundService.playSoundEffect(SOUND_EFFECTS.newRecord, 420);
+      soundService.playSoundEffect(
+        newBest ? SOUND_EFFECTS.newRecord : SOUND_EFFECTS.stageClear,
+      );
       gameResultService.clearStage(
         this.gameplayStage!.id,
         score,

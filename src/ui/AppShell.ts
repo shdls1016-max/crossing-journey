@@ -16,6 +16,7 @@ import { createGameButton } from "./components/GameButton";
 import { createGamePopup } from "./components/GamePopup";
 import type { CharacterService } from "../characters/CharacterService";
 import { CHARACTERS } from "../characters/characterCatalog";
+import { SOUND_EFFECTS } from "../audio/soundEffects";
 
 export interface AppShellDependencies {
   flow: ScreenFlowStore;
@@ -557,8 +558,11 @@ export class AppShell {
       toggle.setAttribute("aria-checked", String(enabled));
       toggle.textContent = enabled ? "ON" : "OFF";
       toggle.addEventListener("click", () => {
-        this.dependencies.settings.toggle(key);
+        const settings = this.dependencies.settings.toggle(key);
         this.dependencies.sound.applySettings();
+        if (settings.soundEffects) {
+          this.dependencies.sound.playSoundEffect(SOUND_EFFECTS.buttonClick);
+        }
         if (key !== "vibration") this.dependencies.vibration.pulse();
       });
 

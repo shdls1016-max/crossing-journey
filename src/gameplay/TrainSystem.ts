@@ -37,14 +37,15 @@ const BARRIER_TRANSITION_MS = 650;
 const TRAIN_LEAD_MS = 800;
 const TRAIN_MARGIN = 80;
 const TRAIN_PERSPECTIVE_ANGLE = 22;
-const TRAIN_CARRIAGE_WIDTH_SCALE = 0.64;
-const TRAIN_CARRIAGE_HEIGHT_SCALE = 0.414;
-// Measured non-transparent alpha bounds keep adjacent PNG segments from
-// visually intersecting even though their source canvases have different sizes.
+const TRAIN_CARRIAGE_WIDTH_SCALE = 0.56;
+const TRAIN_CARRIAGE_HEIGHT_SCALE = 0.37;
+const TRAIN_CARRIAGE_Y_OFFSET = 0.022;
+// Measured alpha bounds allow a small controlled overlap that hides the
+// source PNG padding while keeping the visible carriage seams consistent.
 const TRAIN_HEAD_ALPHA_WIDTH = 0.88;
 const TRAIN_HEAD_ALPHA_HEIGHT = 0.577;
 const TRAIN_CARRIAGE_ALPHA_WIDTH = 0.964;
-const TRAIN_SEGMENT_GAP = 4;
+const TRAIN_SEGMENT_GAP = -8;
 
 export class TrainSystem {
   private scene: Phaser.Scene | null = null;
@@ -266,7 +267,7 @@ export class TrainSystem {
       image.setPosition(
         headX -
           runtime.definition.direction * trainOffsetForIndex(index, trainSize),
-        y,
+        y + (index === 0 ? 0 : trainSize * TRAIN_CARRIAGE_Y_OFFSET),
       );
       const vehicle = runtime.vehicles[index]!;
       vehicle.collisionWidth =

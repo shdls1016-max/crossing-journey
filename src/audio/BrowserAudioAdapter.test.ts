@@ -89,6 +89,10 @@ test("music volume, fade and sound-effect mute state are applied", async () => {
     adapter.setSoundEffectsMuted(false);
     adapter.playSoundEffect("coin.mp3");
     assert.equal(FakeAudio.instances.at(-1)?.playCount, 1);
+    assert.equal(FakeAudio.instances.at(-1)?.volume, 2 / 3);
+
+    adapter.playSoundEffect("game-over.mp3", { volumeScale: 1.5 });
+    assert.equal(FakeAudio.instances.at(-1)?.volume, 1);
 
     adapter.setSoundEffectsMuted(true);
     adapter.playSoundEffect("coin.mp3");

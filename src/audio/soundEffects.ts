@@ -1,6 +1,7 @@
 import { assetUrl } from "../assets/assetPaths";
 
 export const SOUND_EFFECT_FILES = {
+  buttonClick: "assets/audio/sfx-button-click.mp3",
   coin: "assets/audio/sfx-coin.mp3",
   stageClear: "assets/audio/sfx-stage-clear.mp3",
   gameOver: "assets/audio/sfx-game-over.mp3",
@@ -8,6 +9,7 @@ export const SOUND_EFFECT_FILES = {
 } as const;
 
 export const SOUND_EFFECTS = {
+  buttonClick: assetUrl(SOUND_EFFECT_FILES.buttonClick),
   coin: assetUrl(SOUND_EFFECT_FILES.coin),
   stageClear: assetUrl(SOUND_EFFECT_FILES.stageClear),
   gameOver: assetUrl(SOUND_EFFECT_FILES.gameOver),

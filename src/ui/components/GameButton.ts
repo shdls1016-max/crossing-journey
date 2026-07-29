@@ -1,4 +1,6 @@
 import { DOM_ASSETS } from "../../assets/assetPaths";
+import { soundService } from "../../appServices";
+import { SOUND_EFFECTS } from "../../audio/soundEffects";
 
 export interface GameButtonOptions {
   label: string;
@@ -57,6 +59,9 @@ export function createGameButton(options: GameButtonOptions): HTMLButtonElement 
     button.append(label);
   }
 
-  button.addEventListener("click", options.onClick);
+  button.addEventListener("click", () => {
+    soundService.playSoundEffect(SOUND_EFFECTS.buttonClick);
+    options.onClick();
+  });
   return button;
 }

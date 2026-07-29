@@ -1,10 +1,15 @@
 import type { SettingsService } from "../settings/SettingsService";
 
+export interface SoundEffectOptions {
+  readonly delayMs?: number;
+  readonly volumeScale?: number;
+}
+
 export interface AudioAdapter {
   setMusicTrack(source: string | null, volumeScale?: number): void;
   fadeOutMusic(durationMs: number): void;
   preloadSoundEffects(sources: readonly string[]): void;
-  playSoundEffect(source: string, delayMs?: number): void;
+  playSoundEffect(source: string, options?: SoundEffectOptions): void;
   setMusicMuted(muted: boolean): void;
   setSoundEffectsMuted(muted: boolean): void;
 }
@@ -37,7 +42,7 @@ export class SoundService {
     this.adapter?.preloadSoundEffects(sources);
   }
 
-  playSoundEffect(source: string, delayMs = 0): void {
-    this.adapter?.playSoundEffect(source, delayMs);
+  playSoundEffect(source: string, options: SoundEffectOptions = {}): void {
+    this.adapter?.playSoundEffect(source, options);
   }
 }

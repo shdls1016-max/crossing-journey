@@ -1,7 +1,7 @@
-import type { AudioAdapter } from "./SoundService";
+import type { AudioAdapter, SoundEffectOptions } from "./SoundService";
 
 const MUSIC_VOLUME = 0.42;
-const SOUND_EFFECT_VOLUME = 0.72;
+const SOUND_EFFECT_VOLUME = 2 / 3;
 
 export class BrowserAudioAdapter implements AudioAdapter {
   private readonly music = new Audio();
@@ -82,17 +82,19 @@ export class BrowserAudioAdapter implements AudioAdapter {
     }
   }
 
-  playSoundEffect(source: string, delayMs = 0): void {
+  playSoundEffect(source: string, options: SoundEffectOptions = {}): void {
     if (this.soundEffectsMuted) return;
+    const delayMs = Math.max(0, options.delayMs ?? 0);
+    const volumeScale = Math.max(0, options.volumeScale ?? 1);
     if (delayMs > 0) {
       const timer = window.setTimeout(() => {
         this.effectTimers.delete(timer);
-        this.playSoundEffectNow(source);
+        this.playSoundEffectNow(source, volumeScale);
       }, delayMs);
       this.effectTimers.add(timer);
       return;
     }
-    this.playSoundEffectNow(source);
+    this.playSoundEffectNow(source, volumeScale);
   }
 
   setMusicMuted(muted: boolean): void {
@@ -141,12 +143,12 @@ export class BrowserAudioAdapter implements AudioAdapter {
     });
   }
 
-  private playSoundEffectNow(source: string): void {
+  private playSoundEffectNow(source: string, volumeScale: number): void {
     if (this.soundEffectsMuted) return;
     const template = this.effectTemplates.get(source) ?? new Audio(source);
     const effect = template.cloneNode(true) as HTMLAudioElement;
     effect.preload = "auto";
-    effect.volume = SOUND_EFFECT_VOLUME;
+    effect.volume = Math.min(1, SOUND_EFFECT_VOLUME * volumeScale);
     const release = (): void => {
       this.activeEffects.delete(effect);
     };
