@@ -44,6 +44,7 @@ const MAP_PADDING_BOTTOM = 400;
 const WORLD_TERRAIN_TILE_SIZE = 1024;
 const WORLD_FOREST_DIM_TEXTURE = "world-map-forest-dim-gradient";
 const WORLD_NIGHT_DIM_TEXTURE = "world-map-night-dim-gradient";
+const WORLD_SNOW_FADE_TEXTURE = "world-map-snow-fade";
 
 const PATH_COLORS: Record<StageRegion, number> = {
   meadow: 0xf5d18e,
@@ -51,16 +52,6 @@ const PATH_COLORS: Record<StageRegion, number> = {
   "city-rail": 0xbecbd3,
   "snow-night": 0xf5fbff,
 };
-
-function interpolateRgb(from: number, to: number, progress: number): number {
-  const fromColor = Phaser.Display.Color.IntegerToRGB(from);
-  const toColor = Phaser.Display.Color.IntegerToRGB(to);
-  return Phaser.Display.Color.GetColor(
-    Math.round(Phaser.Math.Linear(fromColor.r, toColor.r, progress)),
-    Math.round(Phaser.Math.Linear(fromColor.g, toColor.g, progress)),
-    Math.round(Phaser.Math.Linear(fromColor.b, toColor.b, progress)),
-  );
-}
 
 export class WorldMapScene extends Phaser.Scene {
   private mapHeight = 0;
@@ -151,25 +142,32 @@ export class WorldMapScene extends Phaser.Scene {
 
   private createRegionBackgrounds(width: number): void {
     const bandHeight = this.mapHeight / 4;
-    const bands = [
-      { y: 0, key: ASSET_KEYS.terrain.city, tint: 0xcfe9f3 },
-      { y: bandHeight, key: ASSET_KEYS.terrain.city, tint: 0xc7d9df },
-      { y: bandHeight * 2, key: ASSET_KEYS.terrain.grass, tint: 0xffffff },
-      { y: bandHeight * 3, key: ASSET_KEYS.terrain.grass, tint: 0xffffff },
+    const regions = [
+      {
+        y: 0,
+        height: bandHeight * 2 + 2,
+        key: ASSET_KEYS.terrain.city,
+        tint: 0xcbdfe7,
+      },
+      {
+        y: bandHeight * 2,
+        height: bandHeight * 2 + 2,
+        key: ASSET_KEYS.terrain.grass,
+        tint: 0xffffff,
+      },
     ] as const;
 
-    for (const band of bands) {
-      const height = bandHeight + 2;
+    for (const region of regions) {
       const tileScale = Math.max(
         1,
         width / WORLD_TERRAIN_TILE_SIZE,
-        height / WORLD_TERRAIN_TILE_SIZE,
+        region.height / WORLD_TERRAIN_TILE_SIZE,
       );
       this.add
-        .tileSprite(0, band.y, width, height, band.key)
+        .tileSprite(0, region.y, width, region.height, region.key)
         .setOrigin(0)
         .setTileScale(tileScale, tileScale)
-        .setTint(band.tint)
+        .setTint(region.tint)
         .setDepth(DESIGN_TOKENS.depth.background);
     }
 
@@ -189,17 +187,7 @@ export class WorldMapScene extends Phaser.Scene {
     );
 
     const snowHeight = bandHeight + 30;
-    const snowTileScale = Math.max(
-      1,
-      width / WORLD_TERRAIN_TILE_SIZE,
-      snowHeight / WORLD_TERRAIN_TILE_SIZE,
-    );
-    this.add
-      .tileSprite(0, 0, width, snowHeight, ASSET_KEYS.terrain.snow)
-      .setOrigin(0)
-      .setTileScale(snowTileScale, snowTileScale)
-      .setAlpha(0.72)
-      .setDepth(DESIGN_TOKENS.depth.background + 1);
+    this.createSnowFadeOverlay(width, snowHeight);
 
     this.createGradientOverlay(
       width,
@@ -218,6 +206,59 @@ export class WorldMapScene extends Phaser.Scene {
     const topGlow = this.add.graphics().setDepth(DESIGN_TOKENS.depth.background + 3);
     topGlow.fillStyle(0x5fd8e8, 0.08);
     topGlow.fillRect(0, 0, width, bandHeight * 0.58);
+  }
+
+  private createSnowFadeOverlay(width: number, height: number): void {
+    if (!this.textures.exists(WORLD_SNOW_FADE_TEXTURE)) {
+      const texture = this.textures.createCanvas(
+        WORLD_SNOW_FADE_TEXTURE,
+        WORLD_TERRAIN_TILE_SIZE,
+        WORLD_TERRAIN_TILE_SIZE,
+      );
+      if (texture) {
+        const context = texture.context;
+        const source = this.textures
+          .get(ASSET_KEYS.terrain.snow)
+          .getSourceImage() as CanvasImageSource;
+        context.clearRect(
+          0,
+          0,
+          WORLD_TERRAIN_TILE_SIZE,
+          WORLD_TERRAIN_TILE_SIZE,
+        );
+        context.drawImage(
+          source,
+          0,
+          0,
+          WORLD_TERRAIN_TILE_SIZE,
+          WORLD_TERRAIN_TILE_SIZE,
+        );
+        context.globalCompositeOperation = "destination-in";
+        const fade = context.createLinearGradient(
+          0,
+          0,
+          0,
+          WORLD_TERRAIN_TILE_SIZE,
+        );
+        fade.addColorStop(0, "rgba(255, 255, 255, 0.72)");
+        fade.addColorStop(0.76, "rgba(255, 255, 255, 0.72)");
+        fade.addColorStop(1, "rgba(255, 255, 255, 0)");
+        context.fillStyle = fade;
+        context.fillRect(
+          0,
+          0,
+          WORLD_TERRAIN_TILE_SIZE,
+          WORLD_TERRAIN_TILE_SIZE,
+        );
+        context.globalCompositeOperation = "source-over";
+        texture.refresh();
+      }
+    }
+    this.add
+      .image(0, 0, WORLD_SNOW_FADE_TEXTURE)
+      .setOrigin(0)
+      .setDisplaySize(width, height)
+      .setDepth(DESIGN_TOKENS.depth.background + 1);
   }
 
   private createGradientOverlay(
@@ -255,7 +296,11 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private createPath(): void {
-    const graphics = this.add.graphics().setDepth(DESIGN_TOKENS.depth.world);
+    const shadows = this.add.graphics().setDepth(DESIGN_TOKENS.depth.world);
+    const paths = this.add.graphics().setDepth(DESIGN_TOKENS.depth.world + 0.1);
+    const highlights = this.add
+      .graphics()
+      .setDepth(DESIGN_TOKENS.depth.world + 0.2);
 
     for (let stageId = 1; stageId < STAGES.length; stageId += 1) {
       const from = this.stagePoints.get(stageId)!;
@@ -275,48 +320,85 @@ export class WorldMapScene extends Phaser.Scene {
       const transitioning = region !== nextRegion;
       const points = curve.getSpacedPoints(transitioning ? 64 : 26);
 
-      graphics.lineStyle(38, 0x654c42, 0.2);
-      graphics.strokePoints(points, false, false);
+      shadows.lineStyle(38, 0x654c42, 0.2);
+      shadows.strokePoints(points, false, false);
       if (transitioning) {
-        this.strokeGradientPath(
-          graphics,
-          points,
+        this.createGradientPath(
+          stageId,
+          from,
+          control,
+          to,
           PATH_COLORS[region],
           PATH_COLORS[nextRegion],
         );
       } else {
-        graphics.lineStyle(29, PATH_COLORS[region], 1);
-        graphics.strokePoints(points, false, false);
+        paths.lineStyle(29, PATH_COLORS[region], 1);
+        paths.strokePoints(points, false, false);
       }
-      graphics.lineStyle(4, 0xffffff, region === "snow-night" ? 0.48 : 0.24);
-      graphics.strokePoints(points, false, false);
+      highlights.lineStyle(
+        4,
+        0xffffff,
+        region === "snow-night" ? 0.48 : 0.24,
+      );
+      highlights.strokePoints(points, false, false);
       this.stageCurves.set(stageId, curve);
     }
   }
 
-  private strokeGradientPath(
-    graphics: Phaser.GameObjects.Graphics,
-    points: readonly Phaser.Math.Vector2[],
+  private createGradientPath(
+    stageId: number,
+    from: StagePoint,
+    control: Phaser.Math.Vector2,
+    to: StagePoint,
     startColor: number,
     endColor: number,
   ): void {
-    const segmentCount = Math.max(1, points.length - 1);
-    for (let index = 1; index < points.length; index += 1) {
-      const progress = Phaser.Math.SmoothStep(
-        (index - 0.5) / segmentCount,
-        0,
-        1,
-      );
-      graphics.lineStyle(
-        30,
-        interpolateRgb(startColor, endColor, progress),
-        1,
-      );
-      graphics.beginPath();
-      graphics.moveTo(points[index - 1]!.x, points[index - 1]!.y);
-      graphics.lineTo(points[index]!.x, points[index]!.y);
-      graphics.strokePath();
-    }
+    const padding = 24;
+    const left = Math.floor(Math.min(from.x, control.x, to.x) - padding);
+    const top = Math.floor(Math.min(from.y, control.y, to.y) - padding);
+    const right = Math.ceil(Math.max(from.x, control.x, to.x) + padding);
+    const bottom = Math.ceil(Math.max(from.y, control.y, to.y) + padding);
+    const width = Math.max(1, right - left);
+    const height = Math.max(1, bottom - top);
+    const textureKey = `world-map-gradient-path-${stageId}`;
+    if (this.textures.exists(textureKey)) this.textures.remove(textureKey);
+    const texture = this.textures.createCanvas(textureKey, width, height);
+    if (!texture) return;
+
+    const context = texture.context;
+    const gradient = context.createLinearGradient(
+      from.x - left,
+      from.y - top,
+      to.x - left,
+      to.y - top,
+    );
+    gradient.addColorStop(
+      0,
+      `#${startColor.toString(16).padStart(6, "0")}`,
+    );
+    gradient.addColorStop(
+      1,
+      `#${endColor.toString(16).padStart(6, "0")}`,
+    );
+    context.clearRect(0, 0, width, height);
+    context.strokeStyle = gradient;
+    context.lineWidth = 29;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.beginPath();
+    context.moveTo(from.x - left, from.y - top);
+    context.quadraticCurveTo(
+      control.x - left,
+      control.y - top,
+      to.x - left,
+      to.y - top,
+    );
+    context.stroke();
+    texture.refresh();
+    this.add
+      .image(left, top, textureKey)
+      .setOrigin(0)
+      .setDepth(DESIGN_TOKENS.depth.world + 0.1);
   }
 
   private createDecorations(width: number): void {
