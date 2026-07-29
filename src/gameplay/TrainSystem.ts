@@ -39,8 +39,12 @@ const TRAIN_MARGIN = 80;
 const TRAIN_PERSPECTIVE_ANGLE = 22;
 const TRAIN_CARRIAGE_WIDTH_SCALE = 0.64;
 const TRAIN_CARRIAGE_HEIGHT_SCALE = 0.414;
-const TRAIN_HEAD_TO_CARRIAGE_SCALE = 0.86;
-const TRAIN_CARRIAGE_SPACING_SCALE = 0.61;
+// Measured non-transparent alpha bounds keep adjacent PNG segments from
+// visually intersecting even though their source canvases have different sizes.
+const TRAIN_HEAD_ALPHA_WIDTH = 0.88;
+const TRAIN_HEAD_ALPHA_HEIGHT = 0.577;
+const TRAIN_CARRIAGE_ALPHA_WIDTH = 0.964;
+const TRAIN_SEGMENT_GAP = 4;
 
 export class TrainSystem {
   private scene: Phaser.Scene | null = null;
@@ -330,10 +334,41 @@ function trainDisplaySize(laneHeight: number): number {
 
 function trainOffsetForIndex(index: number, trainSize: number): number {
   if (index <= 0) return 0;
+  const headWidth = trainHeadVisibleWidth(trainSize);
+  const carriageWidth = trainCarriageVisibleWidth(trainSize);
+  const headToFirstCarriage =
+    (headWidth + carriageWidth) * 0.5 + TRAIN_SEGMENT_GAP;
+  const carriageStep = carriageWidth + TRAIN_SEGMENT_GAP;
+  return headToFirstCarriage + carriageStep * (index - 1);
+}
+
+function trainHeadVisibleWidth(trainSize: number): number {
+  const radians = (TRAIN_PERSPECTIVE_ANGLE * Math.PI) / 180;
   return (
-    trainSize * TRAIN_HEAD_TO_CARRIAGE_SCALE +
-    trainSize * TRAIN_CARRIAGE_SPACING_SCALE * (index - 1)
+    trainSize * TRAIN_HEAD_ALPHA_WIDTH * Math.cos(radians) +
+    trainSize * TRAIN_HEAD_ALPHA_HEIGHT * Math.sin(radians)
   );
+}
+
+function trainCarriageVisibleWidth(trainSize: number): number {
+  return (
+    trainSize *
+    TRAIN_CARRIAGE_WIDTH_SCALE *
+    TRAIN_CARRIAGE_ALPHA_WIDTH
+  );
+}
+
+export function trainSegmentLayout(
+  trainCars: number,
+  trainSize: number,
+): readonly { offset: number; visibleWidth: number }[] {
+  return Array.from({ length: trainCars }, (_, index) => ({
+    offset: trainOffsetForIndex(index, trainSize),
+    visibleWidth:
+      index === 0
+        ? trainHeadVisibleWidth(trainSize)
+        : trainCarriageVisibleWidth(trainSize),
+  }));
 }
 
 function drawBarrier(

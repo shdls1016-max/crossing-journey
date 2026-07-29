@@ -26,7 +26,9 @@ export interface ActiveVehicle {
 }
 
 interface MutableVehicle extends ActiveVehicle {
+  readonly kind: VehicleKind;
   readonly normalizedOffset: number;
+  visualWidth: number;
 }
 
 export interface ActiveLog {
@@ -47,6 +49,7 @@ const LOG_TOP_DOWN_ANGLE = 18;
 const LOG_VISUAL_HEIGHT_SCALE = 0.82;
 const LOG_LANDING_OFFSET = 0.16;
 const LOG_MINIMUM_GAP = 8;
+const VEHICLE_MINIMUM_GAP = 12;
 
 export class ObstacleSpawner {
   private scene: Phaser.Scene | null = null;
@@ -81,18 +84,12 @@ export class ObstacleSpawner {
       vehicle.image.x += vehicle.speed * vehicle.direction * seconds;
       const margin = vehicle.image.displayWidth * 0.65;
       if (vehicle.direction > 0 && vehicle.image.x > this.layout.width + margin) {
-        vehicle.image.x =
-          (this.stage?.id ?? 0) >= 11
-            ? this.findOpenVehicleSpawnX(vehicle, -margin)
-            : -margin;
+        vehicle.image.x = this.findOpenVehicleSpawnX(vehicle, -margin);
       } else if (vehicle.direction < 0 && vehicle.image.x < -margin) {
-        vehicle.image.x =
-          (this.stage?.id ?? 0) >= 11
-            ? this.findOpenVehicleSpawnX(
-                vehicle,
-                this.layout.width + margin,
-              )
-            : this.layout.width + margin;
+        vehicle.image.x = this.findOpenVehicleSpawnX(
+          vehicle,
+          this.layout.width + margin,
+        );
       }
     }
     for (const log of this.logs) {
@@ -115,11 +112,9 @@ export class ObstacleSpawner {
     const previousPlayWidth = this.layout?.playWidth ?? layout.playWidth;
     this.layout = layout;
     for (const vehicle of this.vehicles) {
-      const displaySize =
-        vehicle.image.texture.key === ASSET_KEYS.vehicle.truck
-          ? Math.min(118, layout.laneHeight * 1.24)
-          : Math.min(92, layout.laneHeight * 0.98);
+      const displaySize = vehicleDisplaySize(vehicle.kind, layout.laneHeight);
       vehicle.image.setDisplaySize(displaySize, displaySize);
+      vehicle.visualWidth = vehicleVisibleWidth(vehicle.kind, displaySize);
       vehicle.image.y = layout.laneY(vehicle.lane);
       vehicle.image.x = preservePositions
         ? (vehicle.image.x / previousWidth) * layout.width
@@ -143,7 +138,7 @@ export class ObstacleSpawner {
       log.supportWidth = logVisibleWidth(log.kind, displaySize);
       log.frameDeltaX = 0;
     }
-    if ((this.stage?.id ?? 0) >= 11) this.separateOverlappingVehicles();
+    this.separateOverlappingVehicles();
     this.separateOverlappingLogs();
   }
 
@@ -185,10 +180,12 @@ export class ObstacleSpawner {
       const collisionScale = kind === "truck" ? 0.58 : 0.5;
       this.vehicles.push({
         image,
+        kind,
         lane: laneIndex,
         direction: lane.direction,
         speed: lane.speed,
         normalizedOffset,
+        visualWidth: 0,
         collisionWidth: (kind === "truck" ? 118 : 92) * collisionScale,
         collisionHeight: kind === "truck" ? 42 : 34,
       });
@@ -249,11 +246,10 @@ export class ObstacleSpawner {
           candidate !== vehicle &&
           candidate.lane === vehicle.lane &&
           Math.abs(spawnX - candidate.image.x) <
-            (vehicle.collisionWidth + candidate.collisionWidth) * 0.5 + 12,
+            vehicleSeparation(vehicle, candidate),
       );
       if (!overlapping) break;
-      const separation =
-        (vehicle.collisionWidth + overlapping.collisionWidth) * 0.5 + 12;
+      const separation = vehicleSeparation(vehicle, overlapping);
       spawnX =
         vehicle.direction > 0
           ? overlapping.image.x - separation
@@ -271,8 +267,7 @@ export class ObstacleSpawner {
       for (let index = 1; index < laneVehicles.length; index += 1) {
         const previous = laneVehicles[index - 1]!;
         const current = laneVehicles[index]!;
-        const minimumDistance =
-          (previous.collisionWidth + current.collisionWidth) * 0.5 + 12;
+        const minimumDistance = vehicleSeparation(previous, current);
         if (current.image.x - previous.image.x < minimumDistance) {
           current.image.x = previous.image.x + minimumDistance;
         }
@@ -312,6 +307,37 @@ function keyForVehicle(kind: VehicleKind): string {
     default:
       return ASSET_KEYS.vehicle.compact;
   }
+}
+
+function vehicleDisplaySize(kind: VehicleKind, laneHeight: number): number {
+  return kind === "truck"
+    ? Math.min(118, laneHeight * 1.24)
+    : Math.min(92, laneHeight * 0.98);
+}
+
+export function vehicleVisibleWidth(
+  kind: VehicleKind,
+  displaySize: number,
+): number {
+  // Ratios are the measured non-transparent alpha widths of the source PNGs.
+  switch (kind) {
+    case "sedan":
+      return displaySize * 0.844;
+    case "truck":
+      return displaySize * 0.792;
+    default:
+      return displaySize * 0.755;
+  }
+}
+
+function vehicleSeparation(
+  left: Pick<MutableVehicle, "visualWidth">,
+  right: Pick<MutableVehicle, "visualWidth">,
+): number {
+  return (
+    (left.visualWidth + right.visualWidth) * 0.5 +
+    VEHICLE_MINIMUM_GAP
+  );
 }
 
 function vehicleFacesRight(kind: VehicleKind): boolean {

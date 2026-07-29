@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveTrainPhase } from "./TrainSystem";
+import { resolveTrainPhase, trainSegmentLayout } from "./TrainSystem";
 
 const definition = {
   cycleMs: 15_000,
@@ -26,4 +26,21 @@ test("train collision progress exists only while the train is passing", () => {
   const opening = resolveTrainPhase(14_600, definition, passingMs);
   assert.equal(opening.phase, "opening");
   assert.equal(opening.trainProgress, 0);
+});
+
+test("train head and carriages keep a visible gap at every gameplay size", () => {
+  for (const trainSize of [132.72, 164]) {
+    for (const trainCars of [1, 2, 3]) {
+      const segments = trainSegmentLayout(trainCars, trainSize);
+      for (let index = 1; index < segments.length; index += 1) {
+        const previous = segments[index - 1]!;
+        const current = segments[index]!;
+        const gap =
+          current.offset -
+          previous.offset -
+          (previous.visibleWidth + current.visibleWidth) * 0.5;
+        assert.ok(gap >= 4 - Number.EPSILON);
+      }
+    }
+  }
 });
