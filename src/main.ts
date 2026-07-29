@@ -13,6 +13,8 @@ import "./styles/global.css";
 import { AppShell } from "./ui/AppShell";
 import { BrowserAudioAdapter } from "./audio/BrowserAudioAdapter";
 import { getMusicTrackForStage } from "./audio/musicTracks";
+import { SOUND_EFFECTS } from "./audio/soundEffects";
+import { gameplaySession } from "./gameplay/GameplaySessionStore";
 
 const uiRoot = document.querySelector<HTMLElement>("#ui-root");
 if (!uiRoot) throw new Error("UI root was not found.");
@@ -29,13 +31,27 @@ new AppShell(uiRoot, {
 
 const audioAdapter = new BrowserAudioAdapter();
 soundService.attach(audioAdapter);
+soundService.preloadSoundEffects(Object.values(SOUND_EFFECTS));
 screenFlow.subscribe((state) => {
   const gameplayEnded = state.popup === "clear" || state.popup === "failure";
-  soundService.setMusicTrack(
-    state.screen === "game" && !gameplayEnded
-      ? getMusicTrackForStage(state.activeStage)
-      : null,
-  );
+  if (state.screen === "game" && gameplayEnded) {
+    return;
+  }
+  if (state.screen === "game") {
+    soundService.setMusicTrack(getMusicTrackForStage(state.activeStage));
+  } else if (state.screen === "world-map" || state.screen === "character-select") {
+    soundService.setMusicTrack(getMusicTrackForStage(1), 0.5);
+  } else {
+    soundService.setMusicTrack(null);
+  }
+});
+let previousGameplayStatus = gameplaySession.getSnapshot().status;
+gameplaySession.subscribe((state) => {
+  const justEnded =
+    state.status !== previousGameplayStatus &&
+    (state.status === "cleared" || state.status === "failed");
+  previousGameplayStatus = state.status;
+  if (justEnded) soundService.fadeOutMusic(5_000);
 });
 
 const game = new Phaser.Game(createGameConfig());

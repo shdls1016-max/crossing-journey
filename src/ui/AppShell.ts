@@ -147,8 +147,8 @@ export class AppShell {
     } else if (this.flowState.screen === "character-select") {
       left.append(
         createGameButton({
-          label: "월드맵",
-          ariaLabel: "월드맵으로 돌아가기",
+          label: "홈",
+          ariaLabel: "홈으로 돌아가기",
           size: "small",
           iconPath: DOM_ASSETS.ui.back,
           className: "game-button--round game-button--utility game-button--back",
@@ -368,7 +368,7 @@ export class AppShell {
               onClick: () => this.dependencies.navigation.toGame(stage),
             },
             {
-              label: "월드맵",
+              label: "홈",
               className: "popup-action popup-action--secondary",
               onClick: () => this.dependencies.navigation.toWorldMap(),
             },
@@ -385,7 +385,7 @@ export class AppShell {
               onClick: () => this.dependencies.navigation.toGame(stage),
             },
             {
-              label: "월드맵",
+              label: "홈",
               className: "popup-action popup-action--secondary",
               onClick: () => this.dependencies.navigation.toWorldMap(),
             },
@@ -406,7 +406,7 @@ export class AppShell {
                 ]
               : []),
             {
-              label: "월드맵",
+              label: "홈",
               className: "popup-action popup-action--secondary",
               onClick: () => this.dependencies.navigation.toWorldMap(),
             },

@@ -7,7 +7,12 @@ import {
   type GameplayStageDefinition,
 } from "../../data/gameplayStages";
 import { SCENE_KEYS } from "../../flow/NavigationService";
-import { gameResultService, saveService, screenFlow } from "../../appServices";
+import {
+  gameResultService,
+  saveService,
+  screenFlow,
+  soundService,
+} from "../../appServices";
 import { CollisionSystem } from "../../gameplay/CollisionSystem";
 import { gameplayInput } from "../../gameplay/GameplayInputService";
 import { gameplaySession } from "../../gameplay/GameplaySessionStore";
@@ -24,6 +29,7 @@ import {
 import { findSupportingLog, RiverSystem } from "../../gameplay/RiverSystem";
 import { getCharacter, type CharacterDefinition } from "../../characters/characterCatalog";
 import { TrainSystem } from "../../gameplay/TrainSystem";
+import { SOUND_EFFECTS } from "../../audio/soundEffects";
 
 interface GameSceneData {
   stageId?: number;
@@ -442,6 +448,7 @@ export class GameScene extends Phaser.Scene {
     if (!coin) return;
     coin.collected = true;
     gameplaySession.collectCoin();
+    soundService.playSoundEffect(SOUND_EFFECTS.coin);
     this.tweens.add({
       targets: coin.image,
       angle: 360,
@@ -465,6 +472,7 @@ export class GameScene extends Phaser.Scene {
     this.riverSystem.setEnabled(false);
     const progress = this.playerController.getLane() / (this.gameplayStage.lanes.length - 1);
     gameplaySession.fail(progress);
+    soundService.playSoundEffect(SOUND_EFFECTS.gameOver);
     this.cameras.main.shake(260, 0.007);
     this.createFailBurst();
     this.time.delayedCall(650, () => gameResultService.failStage());
@@ -506,14 +514,17 @@ export class GameScene extends Phaser.Scene {
       ease: "Sine.easeOut",
     });
     this.time.delayedCall(520, () => {
+      const newBest = score > previousBest;
       gameplaySession.clear({
         score,
         stars,
         collectedCoins: session.collectedCoins,
         awardedCoins,
         progress: 1,
-        newBest: score > previousBest,
+        newBest,
       });
+      soundService.playSoundEffect(SOUND_EFFECTS.stageClear);
+      if (newBest) soundService.playSoundEffect(SOUND_EFFECTS.newRecord, 420);
       gameResultService.clearStage(
         this.gameplayStage!.id,
         score,

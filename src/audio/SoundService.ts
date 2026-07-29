@@ -1,7 +1,10 @@
 import type { SettingsService } from "../settings/SettingsService";
 
 export interface AudioAdapter {
-  setMusicTrack(source: string | null): void;
+  setMusicTrack(source: string | null, volumeScale?: number): void;
+  fadeOutMusic(durationMs: number): void;
+  preloadSoundEffects(sources: readonly string[]): void;
+  playSoundEffect(source: string, delayMs?: number): void;
   setMusicMuted(muted: boolean): void;
   setSoundEffectsMuted(muted: boolean): void;
 }
@@ -22,7 +25,19 @@ export class SoundService {
     this.adapter?.setSoundEffectsMuted(!current.soundEffects);
   }
 
-  setMusicTrack(source: string | null): void {
-    this.adapter?.setMusicTrack(source);
+  setMusicTrack(source: string | null, volumeScale = 1): void {
+    this.adapter?.setMusicTrack(source, volumeScale);
+  }
+
+  fadeOutMusic(durationMs: number): void {
+    this.adapter?.fadeOutMusic(durationMs);
+  }
+
+  preloadSoundEffects(sources: readonly string[]): void {
+    this.adapter?.preloadSoundEffects(sources);
+  }
+
+  playSoundEffect(source: string, delayMs = 0): void {
+    this.adapter?.playSoundEffect(source, delayMs);
   }
 }
