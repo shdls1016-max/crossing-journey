@@ -42,6 +42,8 @@ const STAGE_SPACING = 228;
 const MAP_PADDING_TOP = 360;
 const MAP_PADDING_BOTTOM = 400;
 const WORLD_TERRAIN_TILE_SIZE = 1024;
+const WORLD_FOREST_DIM_TEXTURE = "world-map-forest-dim-gradient";
+const WORLD_NIGHT_DIM_TEXTURE = "world-map-night-dim-gradient";
 
 const PATH_COLORS: Record<StageRegion, number> = {
   meadow: 0xf5d18e,
@@ -49,6 +51,16 @@ const PATH_COLORS: Record<StageRegion, number> = {
   "city-rail": 0xbecbd3,
   "snow-night": 0xf5fbff,
 };
+
+function interpolateRgb(from: number, to: number, progress: number): number {
+  const fromColor = Phaser.Display.Color.IntegerToRGB(from);
+  const toColor = Phaser.Display.Color.IntegerToRGB(to);
+  return Phaser.Display.Color.GetColor(
+    Math.round(Phaser.Math.Linear(fromColor.r, toColor.r, progress)),
+    Math.round(Phaser.Math.Linear(fromColor.g, toColor.g, progress)),
+    Math.round(Phaser.Math.Linear(fromColor.b, toColor.b, progress)),
+  );
+}
 
 export class WorldMapScene extends Phaser.Scene {
   private mapHeight = 0;
@@ -161,7 +173,20 @@ export class WorldMapScene extends Phaser.Scene {
         .setDepth(DESIGN_TOKENS.depth.background);
     }
 
-    this.createFeatheredRegionDim(width, bandHeight * 2, bandHeight);
+    this.createGradientOverlay(
+      width,
+      bandHeight * 2,
+      bandHeight,
+      WORLD_FOREST_DIM_TEXTURE,
+      0x173a2d,
+      [
+        { offset: 0, alpha: 0 },
+        { offset: 0.18, alpha: 0.2 },
+        { offset: 0.82, alpha: 0.2 },
+        { offset: 1, alpha: 0 },
+      ],
+      DESIGN_TOKENS.depth.background + 1,
+    );
 
     const snowHeight = bandHeight + 30;
     const snowTileScale = Math.max(
@@ -176,19 +201,17 @@ export class WorldMapScene extends Phaser.Scene {
       .setAlpha(0.72)
       .setDepth(DESIGN_TOKENS.depth.background + 1);
 
-    const nightDim = this.add
-      .graphics()
-      .setDepth(DESIGN_TOKENS.depth.background + 2);
-    const nightFeather = Math.min(220, bandHeight * 0.2);
-    nightDim.fillStyle(0x152b53, 0.25);
-    nightDim.fillRect(0, 0, width, bandHeight - nightFeather);
-    this.addVerticalAlphaGradient(
+    this.createGradientOverlay(
       width,
-      bandHeight - nightFeather,
-      nightFeather + 30,
-      0x152b53,
-      0.25,
       0,
+      bandHeight + 30,
+      WORLD_NIGHT_DIM_TEXTURE,
+      0x152b53,
+      [
+        { offset: 0, alpha: 0.25 },
+        { offset: 0.82, alpha: 0.25 },
+        { offset: 1, alpha: 0 },
+      ],
       DESIGN_TOKENS.depth.background + 2,
     );
 
@@ -197,64 +220,38 @@ export class WorldMapScene extends Phaser.Scene {
     topGlow.fillRect(0, 0, width, bandHeight * 0.58);
   }
 
-  private createFeatheredRegionDim(
+  private createGradientOverlay(
     width: number,
     y: number,
     height: number,
-  ): void {
-    const feather = Math.min(220, height * 0.2);
-    const alpha = 0.2;
-    const dim = this.add
-      .graphics()
-      .setDepth(DESIGN_TOKENS.depth.background + 1);
-
-    this.addVerticalAlphaGradient(
-      width,
-      y,
-      feather,
-      0x173a2d,
-      0,
-      alpha,
-      DESIGN_TOKENS.depth.background + 1,
-    );
-    dim.fillStyle(0x173a2d, alpha);
-    dim.fillRect(0, y + feather, width, height - feather * 2);
-    this.addVerticalAlphaGradient(
-      width,
-      y + height - feather,
-      feather,
-      0x173a2d,
-      alpha,
-      0,
-      DESIGN_TOKENS.depth.background + 1,
-    );
-  }
-
-  private addVerticalAlphaGradient(
-    width: number,
-    y: number,
-    height: number,
+    textureKey: string,
     color: number,
-    startAlpha: number,
-    endAlpha: number,
+    stops: readonly { offset: number; alpha: number }[],
     depth: number,
   ): void {
-    const steps = 64;
-    const stepHeight = height / steps;
-    for (let index = 0; index < steps; index += 1) {
-      const progress = Phaser.Math.SmoothStep(index / (steps - 1), 0, 1);
-      this.add
-        .rectangle(
-          0,
-          y + index * stepHeight,
-          width,
-          stepHeight + 1,
-          color,
-          Phaser.Math.Linear(startAlpha, endAlpha, progress),
-        )
-        .setOrigin(0)
-        .setDepth(depth);
+    if (!this.textures.exists(textureKey)) {
+      const texture = this.textures.createCanvas(textureKey, 4, 512);
+      if (texture) {
+        const context = texture.context;
+        const { r, g, b } = Phaser.Display.Color.IntegerToRGB(color);
+        const gradient = context.createLinearGradient(0, 0, 0, 512);
+        for (const stop of stops) {
+          gradient.addColorStop(
+            stop.offset,
+            `rgba(${r}, ${g}, ${b}, ${stop.alpha})`,
+          );
+        }
+        context.clearRect(0, 0, 4, 512);
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, 4, 512);
+        texture.refresh();
+      }
     }
+    this.add
+      .image(0, y, textureKey)
+      .setOrigin(0)
+      .setDisplaySize(width, height)
+      .setDepth(depth);
   }
 
   private createPath(): void {
@@ -273,16 +270,52 @@ export class WorldMapScene extends Phaser.Scene {
         control,
         new Phaser.Math.Vector2(to.x, to.y),
       );
-      const points = curve.getSpacedPoints(26);
+      const nextRegion = getStage(stageId + 1).region;
       const region = getStage(stageId).region;
+      const transitioning = region !== nextRegion;
+      const points = curve.getSpacedPoints(transitioning ? 64 : 26);
 
       graphics.lineStyle(38, 0x654c42, 0.2);
       graphics.strokePoints(points, false, false);
-      graphics.lineStyle(29, PATH_COLORS[region], 1);
-      graphics.strokePoints(points, false, false);
+      if (transitioning) {
+        this.strokeGradientPath(
+          graphics,
+          points,
+          PATH_COLORS[region],
+          PATH_COLORS[nextRegion],
+        );
+      } else {
+        graphics.lineStyle(29, PATH_COLORS[region], 1);
+        graphics.strokePoints(points, false, false);
+      }
       graphics.lineStyle(4, 0xffffff, region === "snow-night" ? 0.48 : 0.24);
       graphics.strokePoints(points, false, false);
       this.stageCurves.set(stageId, curve);
+    }
+  }
+
+  private strokeGradientPath(
+    graphics: Phaser.GameObjects.Graphics,
+    points: readonly Phaser.Math.Vector2[],
+    startColor: number,
+    endColor: number,
+  ): void {
+    const segmentCount = Math.max(1, points.length - 1);
+    for (let index = 1; index < points.length; index += 1) {
+      const progress = Phaser.Math.SmoothStep(
+        (index - 0.5) / segmentCount,
+        0,
+        1,
+      );
+      graphics.lineStyle(
+        30,
+        interpolateRgb(startColor, endColor, progress),
+        1,
+      );
+      graphics.beginPath();
+      graphics.moveTo(points[index - 1]!.x, points[index - 1]!.y);
+      graphics.lineTo(points[index]!.x, points[index]!.y);
+      graphics.strokePath();
     }
   }
 
