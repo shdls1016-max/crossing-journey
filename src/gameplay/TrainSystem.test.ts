@@ -28,7 +28,7 @@ test("train collision progress exists only while the train is passing", () => {
   assert.equal(opening.trainProgress, 0);
 });
 
-test("train carriages overlap transparent seams at every gameplay size", () => {
+test("train head joins cleanly while blue carriages keep equal spacing", () => {
   for (const trainSize of [132.72, 164]) {
     for (const trainCars of [1, 2, 3]) {
       const segments = trainSegmentLayout(trainCars, trainSize);
@@ -39,7 +39,8 @@ test("train carriages overlap transparent seams at every gameplay size", () => {
           current.offset -
           previous.offset -
           (previous.visibleWidth + current.visibleWidth) * 0.5;
-        assert.ok(Math.abs(gap + 12) < 1e-6);
+        const expectedGap = index === 1 ? -12 : 0;
+        assert.ok(Math.abs(gap - expectedGap) < 1e-6);
       }
     }
   }

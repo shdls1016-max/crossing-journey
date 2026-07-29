@@ -45,7 +45,8 @@ const TRAIN_CARRIAGE_Y_OFFSET = 0.022;
 const TRAIN_HEAD_ALPHA_WIDTH = 0.88;
 const TRAIN_HEAD_ALPHA_HEIGHT = 0.577;
 const TRAIN_CARRIAGE_ALPHA_WIDTH = 0.964;
-const TRAIN_SEGMENT_GAP = -12;
+const TRAIN_HEAD_TO_CARRIAGE_GAP = -12;
+const TRAIN_CARRIAGE_GAP = 0;
 
 export class TrainSystem {
   private scene: Phaser.Scene | null = null;
@@ -338,8 +339,8 @@ function trainOffsetForIndex(index: number, trainSize: number): number {
   const headWidth = trainHeadVisibleWidth(trainSize);
   const carriageWidth = trainCarriageVisibleWidth(trainSize);
   const headToFirstCarriage =
-    (headWidth + carriageWidth) * 0.5 + TRAIN_SEGMENT_GAP;
-  const carriageStep = carriageWidth + TRAIN_SEGMENT_GAP;
+    (headWidth + carriageWidth) * 0.5 + TRAIN_HEAD_TO_CARRIAGE_GAP;
+  const carriageStep = carriageWidth + TRAIN_CARRIAGE_GAP;
   return headToFirstCarriage + carriageStep * (index - 1);
 }
 
