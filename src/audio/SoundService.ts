@@ -1,6 +1,7 @@
 import type { SettingsService } from "../settings/SettingsService";
 
 export interface AudioAdapter {
+  setMusicTrack(source: string | null): void;
   setMusicMuted(muted: boolean): void;
   setSoundEffectsMuted(muted: boolean): void;
 }
@@ -19,5 +20,9 @@ export class SoundService {
     const current = this.settings.getSnapshot();
     this.adapter?.setMusicMuted(!current.backgroundMusic);
     this.adapter?.setSoundEffectsMuted(!current.soundEffects);
+  }
+
+  setMusicTrack(source: string | null): void {
+    this.adapter?.setMusicTrack(source);
   }
 }

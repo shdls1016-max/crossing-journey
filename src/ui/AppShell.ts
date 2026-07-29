@@ -133,7 +133,7 @@ export class AppShell {
       hud.classList.add("hud--game");
       const stage = document.createElement("div");
       stage.className = "game-hud__stage";
-      stage.textContent = `Stage ${this.flowState.activeStage}`;
+      stage.textContent = `스테이지 ${this.flowState.activeStage}`;
 
       const runCoins = document.createElement("div");
       runCoins.className = "game-hud__coins";
@@ -197,8 +197,8 @@ export class AppShell {
         right.classList.add("hud__cluster--vertical");
         right.append(
           createGameButton({
-            label: "Character Menu",
-            ariaLabel: "Character Menu",
+            label: "캐릭터 선택",
+            ariaLabel: "캐릭터 선택",
             size: "small",
             iconPath: DOM_ASSETS.ui.characterMenu,
             className:
@@ -358,17 +358,17 @@ export class AppShell {
           onClose: resume,
           actions: [
             {
-              label: "Continue",
+              label: "계속하기",
               className: "popup-action popup-action--primary",
               onClick: resume,
             },
             {
-              label: "Retry",
+              label: "다시하기",
               className: "popup-action popup-action--secondary",
               onClick: () => this.dependencies.navigation.toGame(stage),
             },
             {
-              label: "Home",
+              label: "월드맵",
               className: "popup-action popup-action--secondary",
               onClick: () => this.dependencies.navigation.toWorldMap(),
             },
@@ -380,12 +380,12 @@ export class AppShell {
           content: this.createRunSummary(false),
           actions: [
             {
-              label: "Retry",
+              label: "다시하기",
               className: "popup-action popup-action--primary",
               onClick: () => this.dependencies.navigation.toGame(stage),
             },
             {
-              label: "Home",
+              label: "월드맵",
               className: "popup-action popup-action--secondary",
               onClick: () => this.dependencies.navigation.toWorldMap(),
             },
@@ -393,20 +393,20 @@ export class AppShell {
         });
       case "clear":
         return createGamePopup({
-          title: "Stage Complete",
+          title: "스테이지 클리어",
           content: this.createRunSummary(true),
           actions: [
             ...(stage < 20
               ? [
                   {
-                    label: "Next Stage",
+                    label: "다음 스테이지",
                     className: "popup-action popup-action--primary",
                     onClick: () => this.dependencies.navigation.toGame(stage + 1),
                   },
                 ]
               : []),
             {
-              label: "Home",
+              label: "월드맵",
               className: "popup-action popup-action--secondary",
               onClick: () => this.dependencies.navigation.toWorldMap(),
             },
@@ -452,7 +452,7 @@ export class AppShell {
     const scoreRow = document.createElement("div");
     scoreRow.className = "stage-card__stat";
     const scoreLabel = document.createElement("span");
-    scoreLabel.textContent = "Best Score";
+    scoreLabel.textContent = "최고 기록";
     const scoreValue = document.createElement("strong");
     scoreValue.textContent = bestScore;
     scoreRow.append(scoreLabel, scoreValue);
@@ -469,7 +469,7 @@ export class AppShell {
     content.append(stars, scoreRow, rewardRow);
 
     return createGamePopup({
-      title: `Stage ${stageId}`,
+      title: `스테이지 ${stageId}`,
       content,
       onClose: () => this.dependencies.flow.closePopup(),
       actions: [
@@ -509,13 +509,13 @@ export class AppShell {
 
     const rows: readonly [string, string][] = cleared && result
       ? [
-          ["Score", String(result.score)],
-          ["Coins", `+${result.awardedCoins}`],
-          ["Best", result.newBest ? "New Record!" : "기록 유지"],
+          ["점수", String(result.score)],
+          ["코인", `+${result.awardedCoins}`],
+          ["최고 기록", result.newBest ? "신기록!" : "기록 유지"],
         ]
       : [
-          ["Progress", `${Math.round(this.gameplayState.progress * 100)}%`],
-          ["Coins", String(this.gameplayState.collectedCoins)],
+          ["진행률", `${Math.round(this.gameplayState.progress * 100)}%`],
+          ["코인", String(this.gameplayState.collectedCoins)],
         ];
 
     for (const [label, value] of rows) {

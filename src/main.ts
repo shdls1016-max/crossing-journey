@@ -11,6 +11,8 @@ import {
 import { createGameConfig } from "./game/createGameConfig";
 import "./styles/global.css";
 import { AppShell } from "./ui/AppShell";
+import { BrowserAudioAdapter } from "./audio/BrowserAudioAdapter";
+import { getMusicTrackForStage } from "./audio/musicTracks";
 
 const uiRoot = document.querySelector<HTMLElement>("#ui-root");
 if (!uiRoot) throw new Error("UI root was not found.");
@@ -23,6 +25,17 @@ new AppShell(uiRoot, {
   sound: soundService,
   vibration: vibrationService,
   characters: characterService,
+});
+
+const audioAdapter = new BrowserAudioAdapter();
+soundService.attach(audioAdapter);
+screenFlow.subscribe((state) => {
+  const gameplayEnded = state.popup === "clear" || state.popup === "failure";
+  soundService.setMusicTrack(
+    state.screen === "game" && !gameplayEnded
+      ? getMusicTrackForStage(state.activeStage)
+      : null,
+  );
 });
 
 const game = new Phaser.Game(createGameConfig());
@@ -43,6 +56,7 @@ const viewportObserver = new ResizeObserver(resizeGame);
 viewportObserver.observe(document.documentElement);
 
 window.addEventListener("pagehide", () => {
+  audioAdapter.dispose();
   viewportObserver.disconnect();
   window.visualViewport?.removeEventListener("resize", resizeGame);
   window.removeEventListener("resize", resizeGame);
